@@ -7,5 +7,7 @@ data class LessonUiModel(
     val scheduledAt: LocalDateTime,
     val durationMinutes: Int,
     val childNames: String,
-    val comment: String
+    val comment: String,
+    val childIds: List<String> = emptyList(),
+    val videoUris: List<String> = emptyList()
 )

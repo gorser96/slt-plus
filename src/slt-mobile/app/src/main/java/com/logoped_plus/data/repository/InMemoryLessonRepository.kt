@@ -45,4 +45,10 @@ class InMemoryLessonRepository : LessonRepository {
     override fun addLesson(lesson: Lesson) {
         lessons.add(lesson)
     }
+
+    override fun updateLesson(lesson: Lesson) {
+        val index = lessons.indexOfFirst { it.id == lesson.id }
+        require(index >= 0) { "Lesson not found" }
+        lessons[index] = lesson
+    }
 }

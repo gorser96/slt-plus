@@ -3,6 +3,7 @@ package com.logoped_plus.ui.screen.schedule
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.logoped_plus.domain.model.Lesson
+import com.logoped_plus.domain.model.VideoAttachment
 import com.logoped_plus.domain.repository.ChildRepository
 import com.logoped_plus.domain.repository.LessonRepository
 import com.logoped_plus.ui.screen.schedule.model.LessonUiModel
@@ -57,6 +58,32 @@ class ScheduleViewModel(
 
     fun onAction(action: ScheduleAction) {
         when (action) {
+            ScheduleAction.StartEditingLesson -> {
+                _uiState.update { it.copy(isEditingLesson = it.selectedLesson != null) }
+            }
+
+            ScheduleAction.CancelEditingLesson -> {
+                _uiState.update { it.copy(isEditingLesson = false) }
+            }
+
+            is ScheduleAction.UpdateLesson -> {
+                val original = lessonRepository.getLessonById(action.lessonId) ?: return
+                if (action.durationMinutes <= 0 || action.childIds.isEmpty()) return
+                lessonRepository.updateLesson(original.copy(
+                    scheduledAt = action.scheduledAt,
+                    childIds = action.childIds,
+                    durationMinutes = action.durationMinutes,
+                    comment = action.comment,
+                    videoAttachments = action.videoUris.map { VideoAttachment(it) }
+                ))
+                val lessons = lessonRepository.getLessons().map { it.toUiModel() }
+                _uiState.update { it.copy(
+                    lessons = lessons,
+                    selectedLesson = lessons.find { it.id == action.lessonId },
+                    isEditingLesson = false
+                ) }
+            }
+
             is ScheduleAction.SelectDate -> {
                 selectDate(action.date)
             }
@@ -117,7 +144,9 @@ class ScheduleViewModel(
             childNames = childIds
                 .mapNotNull { childRepository.getChildById(it)?.name }
                 .joinToString(", "),
-            comment = comment
+            comment = comment,
+            childIds = childIds,
+            videoUris = videoAttachments.map { it.uri }
         )
     }
 
@@ -137,7 +166,7 @@ class ScheduleViewModel(
 
     private fun closeLesson() {
         _uiState.update {
-            it.copy(selectedLesson = null)
+            it.copy(selectedLesson = null, isEditingLesson = false)
         }
     }
 

@@ -1,6 +1,5 @@
 package com.logoped_plus.ui.screen.schedule
 
-import com.logoped_plus.domain.model.Lesson
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -15,6 +14,19 @@ sealed interface ScheduleAction {
     ) : ScheduleAction
 
     data object CloseLesson : ScheduleAction
+
+    data object StartEditingLesson : ScheduleAction
+
+    data object CancelEditingLesson : ScheduleAction
+
+    data class UpdateLesson(
+        val lessonId: String,
+        val scheduledAt: LocalDateTime,
+        val childIds: List<String>,
+        val durationMinutes: Int,
+        val comment: String,
+        val videoUris: List<String>
+    ) : ScheduleAction
 
     data object StartCreatingLesson : ScheduleAction
 

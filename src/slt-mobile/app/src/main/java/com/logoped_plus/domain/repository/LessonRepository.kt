@@ -12,4 +12,6 @@ interface LessonRepository {
     fun getLessonById(id: String): Lesson?
 
     fun addLesson(lesson: Lesson)
+
+    fun updateLesson(lesson: Lesson)
 }

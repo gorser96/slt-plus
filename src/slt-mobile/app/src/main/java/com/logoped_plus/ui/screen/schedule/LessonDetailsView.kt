@@ -8,7 +8,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -18,17 +25,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.logoped_plus.ui.screen.schedule.model.LessonUiModel
+import com.logoped_plus.ui.screen.schedule.component.VideoAttachmentsEditor
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
 fun LessonDetailsView(
     uiModel: LessonUiModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onEdit: () -> Unit,
+    comment: String,
+    videoUris: List<String>,
+    onCommentChange: (String) -> Unit,
+    onVideosChange: (List<String>) -> Unit,
+    onSave: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
         Row(
@@ -43,8 +58,12 @@ fun LessonDetailsView(
 
             Text(
                 text = "Занятие",
-                style = MaterialTheme.typography.titleLarge
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.weight(1f)
             )
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Default.Edit, contentDescription = "Редактировать занятие")
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -77,18 +96,30 @@ fun LessonDetailsView(
 
         LessonDetailsRow(
             title = "Тип",
-            value = "Индивидуальное занятие"
+            value = if (uiModel.childIds.size > 1) "Групповое занятие" else "Индивидуальное занятие"
         )
+
+        HorizontalDivider()
+        LessonDetailsRow("Длительность", "${uiModel.durationMinutes} мин")
+        HorizontalDivider()
+        OutlinedTextField(
+            value = comment,
+            onValueChange = onCommentChange,
+            label = { Text("Комментарий логопеда") },
+            minLines = 3,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+        )
+        VideoAttachmentsEditor(videoUris, onVideosChange)
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        Button(
-            onClick = {
-                // Редактирование добавим позже.
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Редактировать")
+        if (comment != uiModel.comment || videoUris.toSet() != uiModel.videoUris.toSet()) {
+            Button(
+                onClick = onSave,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Сохранить")
+            }
         }
     }
 }

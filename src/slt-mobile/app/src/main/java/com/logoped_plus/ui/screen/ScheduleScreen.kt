@@ -17,10 +17,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.logoped_plus.ui.screen.schedule.LessonCreateView
 import com.logoped_plus.ui.screen.schedule.LessonDetailsView
+import com.logoped_plus.ui.screen.schedule.LessonEditView
 import com.logoped_plus.ui.screen.schedule.MonthScheduleView
 import com.logoped_plus.ui.screen.schedule.ScheduleAction
 import com.logoped_plus.ui.screen.schedule.ScheduleUiState
@@ -49,11 +53,21 @@ private fun ScheduleContent(
 ) {
     val scrollState = rememberScrollState()
     val selectedLesson = uiState.selectedLesson
+    var commentDraft by rememberSaveable(selectedLesson?.id, selectedLesson?.comment) {
+        mutableStateOf(selectedLesson?.comment.orEmpty())
+    }
+    var videoDraft by rememberSaveable(selectedLesson?.id, selectedLesson?.videoUris) {
+        mutableStateOf(selectedLesson?.videoUris.orEmpty())
+    }
 
     BackHandler(
         enabled = selectedLesson != null || uiState.isCreatingLesson
     ) {
         when {
+            uiState.isEditingLesson -> {
+                onAction(ScheduleAction.CancelEditingLesson)
+            }
+
             selectedLesson != null -> {
                 onAction(ScheduleAction.CloseLesson)
             }
@@ -64,9 +78,36 @@ private fun ScheduleContent(
         }
     }
 
+    if (selectedLesson != null && uiState.isEditingLesson) {
+        LessonEditView(
+            lesson = selectedLesson.copy(comment = commentDraft, videoUris = videoDraft),
+            children = uiState.children,
+            onBack = { onAction(ScheduleAction.CancelEditingLesson) },
+            onSave = { scheduledAt, childIds, durationMinutes, comment, videoUris ->
+                commentDraft = comment
+                videoDraft = videoUris
+                onAction(ScheduleAction.UpdateLesson(
+                    selectedLesson.id, scheduledAt, childIds, durationMinutes, comment, videoUris
+                ))
+            }
+        )
+        return
+    }
+
     if (selectedLesson != null) {
         LessonDetailsView(
             uiModel = selectedLesson,
+            comment = commentDraft,
+            videoUris = videoDraft,
+            onCommentChange = { commentDraft = it },
+            onVideosChange = { videoDraft = it },
+            onSave = {
+                onAction(ScheduleAction.UpdateLesson(
+                    selectedLesson.id, selectedLesson.scheduledAt, selectedLesson.childIds,
+                    selectedLesson.durationMinutes, commentDraft, videoDraft
+                ))
+            },
+            onEdit = { onAction(ScheduleAction.StartEditingLesson) },
             onBack = {
                 onAction(ScheduleAction.CloseLesson)
             }
