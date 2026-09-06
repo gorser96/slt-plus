@@ -146,7 +146,9 @@ fun ChildMultiSelectField(
                     )
                 }
 
-                LazyColumn {
+                LazyColumn(
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
                     items(
                         items = filteredChildren,
                         key = { child -> child.id }
