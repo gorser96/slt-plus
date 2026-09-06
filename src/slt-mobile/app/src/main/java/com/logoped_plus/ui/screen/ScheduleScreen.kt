@@ -1,5 +1,6 @@
 package com.logoped_plus.ui.screen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,6 +49,20 @@ private fun ScheduleContent(
 ) {
     val scrollState = rememberScrollState()
     val selectedLesson = uiState.selectedLesson
+
+    BackHandler(
+        enabled = selectedLesson != null || uiState.isCreatingLesson
+    ) {
+        when {
+            selectedLesson != null -> {
+                onAction(ScheduleAction.CloseLesson)
+            }
+
+            uiState.isCreatingLesson -> {
+                onAction(ScheduleAction.CancelCreatingLesson)
+            }
+        }
+    }
 
     if (selectedLesson != null) {
         LessonDetailsView(
