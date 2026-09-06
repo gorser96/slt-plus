@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -29,11 +28,11 @@ import com.logoped_plus.domain.model.Child
 import com.logoped_plus.ui.screen.schedule.component.ChildMultiSelectField
 import com.logoped_plus.ui.screen.schedule.component.VideoAttachmentsEditor
 import com.logoped_plus.ui.screen.schedule.model.LessonUiModel
+import com.logoped_plus.ui.screen.schedule.component.LessonDateTimeFields
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.format.DateTimeParseException
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LessonEditView(
     lesson: LessonUiModel,
@@ -41,9 +40,16 @@ fun LessonEditView(
     onBack: () -> Unit,
     onSave: (LocalDateTime, List<String>, Int, String, List<String>) -> Unit
 ) {
-    var time by rememberSaveable(lesson.id) {
-        mutableStateOf(lesson.scheduledAt.toLocalTime().toString().take(5))
+    var dateEpochDay by rememberSaveable(lesson.id) {
+        mutableStateOf(lesson.scheduledAt.toLocalDate().toEpochDay())
     }
+    var hour by rememberSaveable(lesson.id) {
+        mutableStateOf(lesson.scheduledAt.hour.toString().padStart(2, '0'))
+    }
+    var minute by rememberSaveable(lesson.id) {
+        mutableStateOf(lesson.scheduledAt.minute.toString().padStart(2, '0'))
+    }
+    val isTimeValid = hour.toIntOrNull() in 0..23 && minute.toIntOrNull() in 0..59
 
     var selectedChildIds by rememberSaveable(lesson.id) {
         mutableStateOf(lesson.childIds)
@@ -55,12 +61,6 @@ fun LessonEditView(
 
     var comment by rememberSaveable(lesson.id) { mutableStateOf(lesson.comment) }
     var videoUris by rememberSaveable(lesson.id) { mutableStateOf(lesson.videoUris) }
-    val parsedTime = try {
-        LocalTime.parse(time)
-    } catch (_: DateTimeParseException) {
-        null
-    }
-
     val duration = durationMinutes.toIntOrNull()
     val isDurationValid = duration != null && duration > 0
 
@@ -92,30 +92,13 @@ fun LessonEditView(
         Column(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
-                value = lesson.scheduledAt.toLocalDate().toString(),
-                onValueChange = {},
-                modifier = Modifier.fillMaxWidth(),
-                label = {
-                    Text("Дата")
-                },
-                readOnly = true
-            )
-
-            OutlinedTextField(
-                value = time,
-                onValueChange = {
-                    time = it
-                },
-                modifier = Modifier.fillMaxWidth(),
-                label = {
-                    Text("Время")
-                },
-                placeholder = {
-                    Text("Например, 10:00")
-                },
-                singleLine = true,
-                isError = time.isNotBlank() && parsedTime == null
+            LessonDateTimeFields(
+                date = LocalDate.ofEpochDay(dateEpochDay),
+                onDateChange = { dateEpochDay = it.toEpochDay() },
+                hour = hour,
+                onHourChange = { hour = it },
+                minute = minute,
+                onMinuteChange = { minute = it }
             )
 
             OutlinedTextField(
@@ -163,19 +146,17 @@ fun LessonEditView(
 
         Button(
             onClick = {
-                val lessonTime = parsedTime ?: return@Button
-
                 onSave(
                     LocalDateTime.of(
-                        lesson.scheduledAt.toLocalDate(),
-                        lessonTime
+                        LocalDate.ofEpochDay(dateEpochDay),
+                        LocalTime.of(hour.toInt(), minute.toInt())
                     ),
                     selectedChildIds.toList(),
                     duration!!, comment, videoUris
                 )
             },
             modifier = Modifier.fillMaxWidth(),
-            enabled = parsedTime != null && selectedChildIds.isNotEmpty() && isDurationValid
+            enabled = isTimeValid && selectedChildIds.isNotEmpty() && isDurationValid
         ) {
             Text("Сохранить изменения")
         }

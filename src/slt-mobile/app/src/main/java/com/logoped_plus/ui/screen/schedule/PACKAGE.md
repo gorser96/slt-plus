@@ -14,9 +14,9 @@
 | [MonthScheduleView.kt](MonthScheduleView.kt) | `MonthScheduleView`, приватные `CalendarView`, `CalendarDay`, `buildCalendarDays`; сетка месяца, выбранный день и сортированный список занятий |
 | [WeekScheduleView.kt](WeekScheduleView.kt) | `WeekScheduleView`, приватные `WeekDayColumn`, `formatWeekRange`; семь колонок дней и сортировка занятий по времени |
 | [ScheduleComponents.kt](ScheduleComponents.kt) — `LessonItem`, `WeekLessonItem` | Карточки занятия для месяца и недели |
-| [LessonCreateView.kt](LessonCreateView.kt) | Создание: выбранная дата только для чтения, время, дети, длительность; callback `onCreate` |
+| [LessonCreateView.kt](LessonCreateView.kt) | Создание: дата через `LessonDateField`, компактные поля часов и минут рядом с датой через `LessonDateTimeFields`, дети, длительность; callback `onCreate` |
 | [LessonDetailsView.kt](LessonDetailsView.kt) | Просмотр занятия, тип по количеству детей, редактирование комментария и вложений, кнопки сохранения/редактирования |
-| [LessonEditView.kt](LessonEditView.kt) | Форма изменения времени, детей, длительности, комментария и видео; callback `onSave`, дата только для чтения |
+| [LessonEditView.kt](LessonEditView.kt) | Форма изменения даты, времени, детей, длительности, комментария и видео; `LessonDateTimeFields`, callback `onSave` |
 
 ## Связи и маршрут поиска
 
@@ -29,7 +29,7 @@
 - ViewModel начинает с текущей даты, собирает `ChildRepository.children` и при изменениях обновляет имена во всех занятиях и выбранной карточке. Список занятий не имеет собственного Flow; перечитывается после операций.
 - `UpdateLesson` игнорирует неизвестный ID, неположительную длительность и пустой список детей; сохраняет через `original.copy`. Создание валидируется формой, а ветка `CreateLesson` в ViewModel добавляет модель без аналогичных проверок.
 - Переключение режима привязывает месяц/неделю к выбранной дате; стрелки меняют отображаемый период отдельно от выбранной даты.
-- В формах дата пока не редактируется, хотя действие обновления принимает `LocalDateTime`. Комментарий и видео при создании не задаются; их можно добавить после создания.
+- Обе формы сохраняют выбранную дату и время как `LocalDateTime`; дата хранится в `rememberSaveable` как epoch day, часы и минуты — строками в `rememberSaveable`; пустое время и значения вне диапазонов 0–23/0–59 блокируют сохранение. Комментарий и видео при создании не задаются; их можно добавить после создания.
 - `LessonItem` в месячном списке пока выводит фиксированный текст «Индивидуальное занятие»; в деталях тип определяется числом `childIds`.
 
 Прямых тестов календаря, ViewModel и форм нет. Сохранение модели частично проверяет тест, указанный в [карте data.repository](../../../data/repository/PACKAGE.md).

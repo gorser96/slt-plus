@@ -1,9 +1,11 @@
 # com.logoped_plus.ui.screen.schedule.component
 
-Назначение: компоненты выбора детей и работы с URI видео. [Общий указатель](../../../../../../../../../../PACKAGES.md).
+Назначение: компоненты выбора даты, детей и работы с URI видео. [Общий указатель](../../../../../../../../../../PACKAGES.md).
 
 | Файл / символ | Ответственность |
 |---|---|
+| [LessonDateTimeFields.kt](LessonDateTimeFields.kt) | Дата слева, компактные поля часов и минут справа; числовая клавиатура, проверка диапазонов 0–23/0–59, сообщение об ошибке |
+| [LessonDateField.kt](LessonDateField.kt) | Поле `OutlinedTextField` с подписью «Дата» и иконкой календаря; нажатие открывает `DatePickerDialog` с `DatePicker`; подтверждение/отмена, преобразование даты через UTC без сдвига часового пояса |
 | [ChildMultiSelectField.kt](ChildMultiSelectField.kt) | Bottom sheet с множественным выбором ID, поиском по имени без учёта регистра при длине запроса от двух символов; подсказка при отсутствии детей |
 | [VideoAttachmentsEditor.kt](VideoAttachmentsEditor.kt) | `OpenMultipleDocuments` с `video/*`, получение постоянного разрешения чтения URI, устранение дублей, подтверждение открепления и ошибки выбора |
 | [VideoAttachmentLink.kt](VideoAttachmentLink.kt) | Чтение `DISPLAY_NAME` через ContentResolver на `Dispatchers.IO`; открытие видео внешним `ACTION_VIEW` с разрешением чтения; отображение ошибок |

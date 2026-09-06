@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -27,11 +26,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.logoped_plus.domain.model.Child
 import com.logoped_plus.ui.screen.schedule.component.ChildMultiSelectField
+import com.logoped_plus.ui.screen.schedule.component.LessonDateTimeFields
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.format.DateTimeParseException
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LessonCreateView(
     initialDate: LocalDateTime,
@@ -39,9 +38,16 @@ fun LessonCreateView(
     onBack: () -> Unit,
     onCreate: (LocalDateTime, List<String>, Int) -> Unit
 ) {
-    var time by rememberSaveable {
-        mutableStateOf(initialDate.toLocalTime().toString().take(5))
+    var dateEpochDay by rememberSaveable {
+        mutableStateOf(initialDate.toLocalDate().toEpochDay())
     }
+    var hour by rememberSaveable {
+        mutableStateOf(initialDate.hour.toString().padStart(2, '0'))
+    }
+    var minute by rememberSaveable {
+        mutableStateOf(initialDate.minute.toString().padStart(2, '0'))
+    }
+    val isTimeValid = hour.toIntOrNull() in 0..23 && minute.toIntOrNull() in 0..59
 
     var selectedChildIds by rememberSaveable {
         mutableStateOf(emptyList<String>())
@@ -49,12 +55,6 @@ fun LessonCreateView(
 
     var durationMinutes by rememberSaveable {
         mutableStateOf("40")
-    }
-
-    val parsedTime = try {
-        LocalTime.parse(time)
-    } catch (_: DateTimeParseException) {
-        null
     }
 
     val duration = durationMinutes.toIntOrNull()
@@ -88,30 +88,13 @@ fun LessonCreateView(
         Column(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
-                value = initialDate.toLocalDate().toString(),
-                onValueChange = {},
-                modifier = Modifier.fillMaxWidth(),
-                label = {
-                    Text("Дата")
-                },
-                readOnly = true
-            )
-
-            OutlinedTextField(
-                value = time,
-                onValueChange = {
-                    time = it
-                },
-                modifier = Modifier.fillMaxWidth(),
-                label = {
-                    Text("Время")
-                },
-                placeholder = {
-                    Text("Например, 10:00")
-                },
-                singleLine = true,
-                isError = time.isNotBlank() && parsedTime == null
+            LessonDateTimeFields(
+                date = LocalDate.ofEpochDay(dateEpochDay),
+                onDateChange = { dateEpochDay = it.toEpochDay() },
+                hour = hour,
+                onHourChange = { hour = it },
+                minute = minute,
+                onMinuteChange = { minute = it }
             )
 
             OutlinedTextField(
@@ -149,19 +132,17 @@ fun LessonCreateView(
 
         Button(
             onClick = {
-                val lessonTime = parsedTime ?: return@Button
-
                 onCreate(
                     LocalDateTime.of(
-                        initialDate.toLocalDate(),
-                        lessonTime
+                        LocalDate.ofEpochDay(dateEpochDay),
+                        LocalTime.of(hour.toInt(), minute.toInt())
                     ),
                     selectedChildIds.toList(),
                     durationMinutes.toIntOrNull() ?: 40
                 )
             },
             modifier = Modifier.fillMaxWidth(),
-            enabled = parsedTime != null && selectedChildIds.isNotEmpty() && isDurationValid
+            enabled = isTimeValid && selectedChildIds.isNotEmpty() && isDurationValid
         ) {
             Text("Создать занятие")
         }
