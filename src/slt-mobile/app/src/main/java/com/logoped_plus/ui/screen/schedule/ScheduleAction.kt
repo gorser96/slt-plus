@@ -28,7 +28,7 @@ sealed interface ScheduleAction {
         val videoUris: List<String>
     ) : ScheduleAction
 
-    data object StartCreatingLesson : ScheduleAction
+    data class StartCreatingLesson(val scheduledAt: LocalDateTime? = null) : ScheduleAction
 
     data object CancelCreatingLesson : ScheduleAction
 

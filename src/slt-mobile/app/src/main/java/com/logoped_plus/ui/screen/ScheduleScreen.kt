@@ -31,8 +31,6 @@ import com.logoped_plus.ui.screen.schedule.ScheduleUiState
 import com.logoped_plus.ui.screen.schedule.ScheduleViewMode
 import com.logoped_plus.ui.screen.schedule.ScheduleViewModel
 import com.logoped_plus.ui.screen.schedule.WeekScheduleView
-import java.time.LocalDateTime
-import java.time.LocalTime
 
 @Composable
 fun ScheduleScreen(
@@ -118,7 +116,7 @@ private fun ScheduleContent(
 
     if (uiState.isCreatingLesson) {
         LessonCreateView(
-            initialDate = LocalDateTime.of(uiState.selectedDate, LocalTime.of(0, 0)),
+            initialDate = uiState.creationDateTime ?: uiState.selectedDate.atStartOfDay(),
             onBack = {
                 onAction(ScheduleAction.CancelCreatingLesson)
             },
@@ -140,7 +138,10 @@ private fun ScheduleContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
+            .then(
+                if (uiState.viewMode == ScheduleViewMode.MONTH) Modifier.verticalScroll(scrollState)
+                else Modifier
+            )
             .padding(16.dp)
     ) {
         ScheduleViewModeSelector(
@@ -181,6 +182,10 @@ private fun ScheduleContent(
 
             ScheduleViewMode.WEEK -> {
                 WeekScheduleView(
+                    onEmptyHourDoubleClick = { dateTime ->
+                        onAction(ScheduleAction.StartCreatingLesson(dateTime))
+                    },
+                    modifier = Modifier.weight(1f),
                     weekStart = uiState.displayedWeekStart,
                     lessons = uiState.lessons,
                     onPreviousWeek = {
@@ -202,7 +207,7 @@ private fun ScheduleContent(
 
         Button(
             onClick = {
-                onAction(ScheduleAction.StartCreatingLesson)
+                onAction(ScheduleAction.StartCreatingLesson())
             },
             modifier = Modifier.fillMaxWidth()
         ) {

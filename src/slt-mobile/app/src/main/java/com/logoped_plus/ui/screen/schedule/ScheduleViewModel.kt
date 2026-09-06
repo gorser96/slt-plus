@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -96,8 +97,8 @@ class ScheduleViewModel(
                 closeLesson()
             }
 
-            ScheduleAction.StartCreatingLesson -> {
-                startCreatingLesson()
+            is ScheduleAction.StartCreatingLesson -> {
+                startCreatingLesson(action.scheduledAt)
             }
 
             ScheduleAction.CancelCreatingLesson -> {
@@ -170,15 +171,18 @@ class ScheduleViewModel(
         }
     }
 
-    private fun startCreatingLesson() {
+    private fun startCreatingLesson(scheduledAt: LocalDateTime?) {
         _uiState.update {
-            it.copy(isCreatingLesson = true)
+            it.copy(
+                isCreatingLesson = true,
+                creationDateTime = scheduledAt ?: it.selectedDate.atStartOfDay()
+            )
         }
     }
 
     private fun cancelCreatingLesson() {
         _uiState.update {
-            it.copy(isCreatingLesson = false)
+            it.copy(isCreatingLesson = false, creationDateTime = null)
         }
     }
 
@@ -188,7 +192,8 @@ class ScheduleViewModel(
         _uiState.update {
             it.copy(
                 lessons = lessonRepository.getLessons().map { lesson -> lesson.toUiModel() },
-                isCreatingLesson = false
+                isCreatingLesson = false,
+                creationDateTime = null
             )
         }
     }
