@@ -2,6 +2,7 @@ package com.logoped_plus.ui.screen.schedule
 
 import com.logoped_plus.domain.model.Lesson
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 sealed interface ScheduleAction {
 
@@ -20,7 +21,9 @@ sealed interface ScheduleAction {
     data object CancelCreatingLesson : ScheduleAction
 
     data class CreateLesson(
-        val lesson: Lesson
+        val scheduledAt: LocalDateTime,
+        val childIds: List<String>,
+        val durationMinutes: Int
     ) : ScheduleAction
 
     data class ChangeViewMode(

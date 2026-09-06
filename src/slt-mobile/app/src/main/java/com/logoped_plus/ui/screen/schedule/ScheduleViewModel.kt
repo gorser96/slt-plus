@@ -1,6 +1,7 @@
 package com.logoped_plus.ui.screen.schedule
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.logoped_plus.domain.model.Lesson
 import com.logoped_plus.domain.repository.ChildRepository
 import com.logoped_plus.domain.repository.LessonRepository
@@ -8,7 +9,9 @@ import com.logoped_plus.ui.screen.schedule.model.LessonUiModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -24,11 +27,33 @@ class ScheduleViewModel(
             selectedDate = today,
             displayedMonth = YearMonth.from(today),
             displayedWeekStart = today.startOfWeek(),
-            lessons = lessonRepository.getLessons().map { it.toUiModel() }
+            lessons = lessonRepository.getLessons().map { it.toUiModel() },
+            children = childRepository.children.value
         )
     )
 
     val uiState: StateFlow<ScheduleUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            childRepository.children.collectLatest { children ->
+                _uiState.update { state ->
+                    val lessons = lessonRepository
+                        .getLessons()
+                        .map { it.toUiModel() }
+
+                    state.copy(
+                        children = children,
+                        lessons = lessons,
+                        selectedLesson = state.selectedLesson
+                            ?.let { selectedLesson ->
+                                lessons.find { it.id == selectedLesson.id }
+                            }
+                    )
+                }
+            }
+        }
+    }
 
     fun onAction(action: ScheduleAction) {
         when (action) {
@@ -53,7 +78,13 @@ class ScheduleViewModel(
             }
 
             is ScheduleAction.CreateLesson -> {
-                createLesson(action.lesson)
+                createLesson(
+                    Lesson(
+                        scheduledAt = action.scheduledAt,
+                        durationMinutes = action.durationMinutes,
+                        childIds = action.childIds
+                    )
+                )
             }
 
             is ScheduleAction.ChangeViewMode -> {

@@ -21,11 +21,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.logoped_plus.data.repository.InMemoryChildRepository
+import com.logoped_plus.data.repository.InMemoryLessonRepository
 import com.logoped_plus.ui.AppDrawer
 import com.logoped_plus.ui.AppScreen
 import com.logoped_plus.ui.screen.ChildrenScreen
 import com.logoped_plus.ui.screen.ScheduleScreen
 import com.logoped_plus.ui.screen.SettingsScreen
+import com.logoped_plus.ui.screen.children.ChildrenViewModel
+import com.logoped_plus.ui.screen.children.ChildrenViewModelFactory
+import com.logoped_plus.ui.screen.schedule.ScheduleViewModel
+import com.logoped_plus.ui.screen.schedule.ScheduleViewModelFactory
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,6 +41,26 @@ fun App() {
     var currentScreen by remember { mutableStateOf(AppScreen.Schedule) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val lessonRepository = remember {
+        InMemoryLessonRepository()
+    }
+
+    val childRepository = remember {
+        InMemoryChildRepository()
+    }
+
+    val scheduleViewModel: ScheduleViewModel = viewModel(
+        factory = ScheduleViewModelFactory(
+            lessonRepository = lessonRepository,
+            childRepository = childRepository
+        )
+    )
+
+    val childrenViewModel: ChildrenViewModel = viewModel(
+        factory = ChildrenViewModelFactory(
+            childRepository = childRepository
+        )
+    )
 
     val screenTitle = when (currentScreen) {
         AppScreen.Schedule -> "Расписание"
@@ -87,8 +114,14 @@ fun App() {
                     .padding(innerPadding)
             ) {
                 when (currentScreen) {
-                    AppScreen.Schedule -> ScheduleScreen()
-                    AppScreen.Children -> ChildrenScreen()
+                    AppScreen.Schedule -> ScheduleScreen(
+                        viewModel = scheduleViewModel
+                    )
+
+                    AppScreen.Children -> ChildrenScreen(
+                        viewModel = childrenViewModel
+                    )
+
                     AppScreen.Settings -> SettingsScreen()
                 }
             }

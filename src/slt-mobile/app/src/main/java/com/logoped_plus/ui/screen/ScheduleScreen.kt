@@ -18,9 +18,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.logoped_plus.data.repository.InMemoryChildRepository
-import com.logoped_plus.data.repository.InMemoryLessonRepository
 import com.logoped_plus.ui.screen.schedule.LessonCreateView
 import com.logoped_plus.ui.screen.schedule.LessonDetailsView
 import com.logoped_plus.ui.screen.schedule.MonthScheduleView
@@ -28,19 +25,13 @@ import com.logoped_plus.ui.screen.schedule.ScheduleAction
 import com.logoped_plus.ui.screen.schedule.ScheduleUiState
 import com.logoped_plus.ui.screen.schedule.ScheduleViewMode
 import com.logoped_plus.ui.screen.schedule.ScheduleViewModel
-import com.logoped_plus.ui.screen.schedule.ScheduleViewModelFactory
 import com.logoped_plus.ui.screen.schedule.WeekScheduleView
 import java.time.LocalDateTime
 import java.time.LocalTime
 
 @Composable
 fun ScheduleScreen(
-    viewModel: ScheduleViewModel = viewModel(
-        factory = ScheduleViewModelFactory(
-            lessonRepository = InMemoryLessonRepository(),
-            childRepository = InMemoryChildRepository(),
-        )
-    )
+    viewModel: ScheduleViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -75,11 +66,16 @@ private fun ScheduleContent(
             onBack = {
                 onAction(ScheduleAction.CancelCreatingLesson)
             },
-            onCreate = { lesson ->
+            onCreate = { scheduledAt, childIds, durationMinutes ->
                 onAction(
-                    ScheduleAction.CreateLesson(lesson)
+                    ScheduleAction.CreateLesson(
+                        scheduledAt = scheduledAt,
+                        childIds = childIds,
+                        durationMinutes = durationMinutes
+                    )
                 )
-            }
+            },
+            children = uiState.children
         )
 
         return
