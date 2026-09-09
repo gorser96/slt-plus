@@ -49,7 +49,7 @@ fun LessonItem(
             )
 
             Text(
-                text = "Индивидуальное занятие",
+                text = if (uiModel.childIds.size > 1) "Групповое занятие" else "Индивидуальное занятие",
                 style = MaterialTheme.typography.bodyMedium
             )
         }
