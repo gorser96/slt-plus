@@ -30,6 +30,7 @@ Android-приложение на Kotlin и Jetpack Compose, один Gradle-м�
 | Путь | Назначение |
 |---|---|
 | [AGENTS.md](AGENTS.md) | Алгоритм поиска и поддержание карт |
+| [SDD.md](SDD.md), [конституция](.specify/memory/constitution.md) | Разработка по спецификациям и общие правила проекта |
 | [app/src/main/AndroidManifest.xml](app/src/main/AndroidManifest.xml) | Activity запуска, тема Android, backup, параметры приложения |
 | [app/src/main/res](app/src/main/res) | Ресурсы Android: имя приложения, XML-тема, иконки, backup-правила; многие UI-строки находятся прямо в Kotlin |
 | [app/build.gradle.kts](app/build.gradle.kts) | SDK, Compose и зависимости приложения |
