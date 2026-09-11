@@ -30,6 +30,7 @@ import com.logoped_plus.domain.model.Child
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChildMultiSelectField(
+    enabled: Boolean = true,
     children: List<Child>,
     selectedChildIds: Set<String>,
     onSelectionChange: (Set<String>) -> Unit
@@ -42,7 +43,7 @@ fun ChildMultiSelectField(
         mutableStateOf("")
     }
 
-    if (children.isEmpty()) {
+    if (children.isEmpty() && enabled) {
         Text(
             text = "Сначала добавьте ребёнка в разделе «Дети»",
             style = MaterialTheme.typography.bodyMedium
@@ -69,6 +70,7 @@ fun ChildMultiSelectField(
         modifier = Modifier.fillMaxWidth()
     ) {
         OutlinedTextField(
+            enabled = enabled,
             value = selectedChildrenText,
             onValueChange = {},
             modifier = Modifier.fillMaxWidth(),
@@ -84,7 +86,7 @@ fun ChildMultiSelectField(
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .clickable {
+                .clickable(enabled = enabled) {
                     isOpen = true
                 }
         )
@@ -103,7 +105,7 @@ fun ChildMultiSelectField(
         }
     }
 
-    if (isOpen) {
+    if (isOpen && enabled) {
         ModalBottomSheet(
             onDismissRequest = {
                 isOpen = false

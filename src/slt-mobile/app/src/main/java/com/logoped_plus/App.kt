@@ -28,8 +28,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.logoped_plus.data.repository.InMemoryChildRepository
-import com.logoped_plus.data.repository.InMemoryLessonRepository
 import com.logoped_plus.ui.AppDrawer
 import com.logoped_plus.ui.AppScreen
 import com.logoped_plus.ui.screen.ChildrenScreen
@@ -63,13 +61,9 @@ fun App() {
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val lessonRepository = remember {
-        InMemoryLessonRepository()
-    }
-
-    val childRepository = remember {
-        InMemoryChildRepository()
-    }
+    val container = (context.applicationContext as LogopedPlusApplication).container
+    val lessonRepository = container.lessonRepository
+    val childRepository = container.childRepository
 
     val scheduleViewModel: ScheduleViewModel = viewModel(
         factory = ScheduleViewModelFactory(

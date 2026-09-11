@@ -33,6 +33,7 @@ import java.time.LocalTime
 
 @Composable
 fun LessonCreateView(
+    childrenReady: Boolean = true,
     initialDate: LocalDateTime,
     children: List<Child>,
     onBack: () -> Unit,
@@ -120,6 +121,7 @@ fun LessonCreateView(
             )
 
             ChildMultiSelectField(
+                enabled = childrenReady,
                 children = children,
                 selectedChildIds = selectedChildIds.toSet(),
                 onSelectionChange = {
@@ -142,7 +144,7 @@ fun LessonCreateView(
                 )
             },
             modifier = Modifier.fillMaxWidth(),
-            enabled = isTimeValid && selectedChildIds.isNotEmpty() && isDurationValid
+            enabled = childrenReady && isTimeValid && selectedChildIds.isNotEmpty() && isDurationValid
         ) {
             Text("Создать занятие")
         }

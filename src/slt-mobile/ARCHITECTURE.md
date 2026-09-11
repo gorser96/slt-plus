@@ -9,14 +9,13 @@
 | Область | Реализовано сейчас | Целевое направление |
 |---|---|---|
 | UI | Kotlin, Jetpack Compose, ViewModel | Сохранение разделения UI и данных |
-| Хранение | InMemoryChildRepository и InMemoryLessonRepository | Room / SQLite отдельной задачей |
-| Зависимости | Создание репозиториев и фабрик вручную в App | Hilt при обоснованном внедрении |
+| Хранение | RoomChildRepository (дети) и пустой InMemoryLessonRepository (занятия) | Room / SQLite отдельной задачей |
+| Зависимости | Общий AppContainer в LogopedPlusApplication, фабрики вручную в App | Hilt при обоснованном внедрении |
 | Навигация | Состояние Compose и переключение экранов | Navigation Compose отдельной задачей |
 | Domain | Модели и интерфейсы репозиториев | Use cases по потребности |
 | Android | minSdk 34, targetSdk 37, compileSdk 37 | Изменения через Gradle |
 
-Данные сейчас не сохраняются между запусками процесса. Постоянное локальное хранение
-является целью MVP, а не уже выполненной гарантией.
+Дети сохраняются в Room между запусками процесса. Занятия остаются в памяти. Начальные списки пусты; прежние демонстрационные данные удалены.
 Основания: [App.kt](app/src/main/java/com/logoped_plus/App.kt),
 [зависимости приложения](app/build.gradle.kts), [карта пакетов](PACKAGES.md).
 Правила развития: [конституция](.specify/memory/constitution.md) и [SDD.md](SDD.md).

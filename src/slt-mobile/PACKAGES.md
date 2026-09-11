@@ -1,13 +1,14 @@
 # Карта пакетов «Логопед+»
 
-Android-приложение на Kotlin и Jetpack Compose, один Gradle-модуль `app`. Ниже перечислены все 11 пакетов, объявленных в исходниках. `data`, `domain` и другие промежуточные каталоги без собственных классов не являются отдельными пунктами. Тестовые source sets используют те же имена пакетов и описаны в соответствующих картах.
+Android-приложение на Kotlin и Jetpack Compose, один Gradle-модуль `app`. Ниже перечислены все 12 пакетов, объявленных в исходниках. `data`, `domain` и другие промежуточные каталоги без собственных классов не являются отдельными пунктами. Тестовые source sets используют те же имена пакетов и описаны в соответствующих картах.
 
 ## Выбор пакета по задаче
 
 | Package / описание | Что искать |
 |---|---|
 | [com.logoped_plus](app/src/main/java/com/logoped_plus/PACKAGE.md) | Запуск, создание зависимостей, переключение экранов, системная кнопка «Назад», выход |
-| [com.logoped_plus.data.repository](app/src/main/java/com/logoped_plus/data/repository/PACKAGE.md) | Данные в памяти, начальные примеры, чтение и изменение записей, тест обновления занятия |
+| [com.logoped_plus.data.local](app/src/main/java/com/logoped_plus/data/local/PACKAGE.md) | Room-схема, DAO, файловая БД детей |
+| [com.logoped_plus.data.repository](app/src/main/java/com/logoped_plus/data/repository/PACKAGE.md) | Room-хранение детей, пустое хранение занятий в памяти, проверки repository |
 | [com.logoped_plus.domain.model](app/src/main/java/com/logoped_plus/domain/model/PACKAGE.md) | Структуры ребёнка, занятия, видеовложения |
 | [com.logoped_plus.domain.repository](app/src/main/java/com/logoped_plus/domain/repository/PACKAGE.md) | Контракты доступа к детям и занятиям |
 | [com.logoped_plus.ui](app/src/main/java/com/logoped_plus/ui/PACKAGE.md) | Боковое меню и список разделов |
@@ -22,7 +23,7 @@ Android-приложение на Kotlin и Jetpack Compose, один Gradle-м�
 
 - Запуск: `AndroidManifest.xml` → `MainActivity` → `LogopedPlusTheme` → `App` → выбранный экран.
 - Изменение занятия: `ScheduleScreen` → форма из `ui.screen.schedule` → `ScheduleAction` → `ScheduleViewModel` → `LessonRepository` → `InMemoryLessonRepository` → обновлённый `ScheduleUiState`.
-- Изменение имени ребёнка: `ChildrenScreen` → `ChildrenViewModel` → `ChildRepository.children` → обновление списка детей и подписанного `ScheduleViewModel` → новые имена в `LessonUiModel`.
+- Изменение имени ребёнка: `ChildrenScreen` → `ChildrenViewModel` → `ChildRepository.state` → обновление списка детей и подписанного `ScheduleViewModel` → новые имена в `LessonUiModel`.
 - Видеовложение: `VideoAttachmentsEditor` → черновик формы/экрана → `UpdateLesson` → `VideoAttachment`. Открытие URI выполняет `VideoAttachmentLink`.
 
 ## Вне пакетов
@@ -38,4 +39,4 @@ Android-приложение на Kotlin и Jetpack Compose, один Gradle-м�
 | [settings.gradle.kts](settings.gradle.kts), [build.gradle.kts](build.gradle.kts), [gradle/libs.versions.toml](gradle/libs.versions.toml) | Модули, плагины, версии зависимостей |
 | [ARCHITECTURE.md](ARCHITECTURE.md), [описание проекта.md](<описание проекта.md>) | Архитектурный план и продуктовый контекст |
 
-Текущее хранение — только в памяти, без сохранения данных между запусками процесса. Репозитории и фабрики ViewModel связываются вручную в `App.kt`; навигация основана на состоянии Compose. Room, Hilt и Navigation Compose из архитектурного плана пока не подключены.
+Дети сохраняются в Room БД между запусками; занятия остаются в памяти процесса. Начальные списки пусты. Общий AppContainer принадлежит LogopedPlusApplication, зависимости передаются вручную. Hilt и Navigation Compose не подключены.

@@ -35,6 +35,7 @@ import java.time.LocalTime
 
 @Composable
 fun LessonEditView(
+    childrenReady: Boolean = true,
     lesson: LessonUiModel,
     children: List<Child>,
     onBack: () -> Unit,
@@ -124,6 +125,7 @@ fun LessonEditView(
             )
 
             ChildMultiSelectField(
+                enabled = childrenReady,
                 children = children,
                 selectedChildIds = selectedChildIds.toSet(),
                 onSelectionChange = {
@@ -156,7 +158,7 @@ fun LessonEditView(
                 )
             },
             modifier = Modifier.fillMaxWidth(),
-            enabled = isTimeValid && selectedChildIds.isNotEmpty() && isDurationValid
+            enabled = childrenReady && isTimeValid && selectedChildIds.isNotEmpty() && isDurationValid
         ) {
             Text("Сохранить изменения")
         }

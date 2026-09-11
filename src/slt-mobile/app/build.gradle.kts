@@ -1,4 +1,5 @@
 plugins {
+    alias(libs.plugins.ksp)
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
@@ -36,6 +37,11 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
+    testImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.androidx.room.testing)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
@@ -53,4 +59,14 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+}
+
+class RoomSchemaArgumentProvider(
+    @get:OutputDirectory val schemaDirectory: File
+) : CommandLineArgumentProvider {
+    override fun asArguments() = listOf("room.schemaLocation=${schemaDirectory.path}")
+}
+
+ksp {
+    arg(RoomSchemaArgumentProvider(file("schemas")))
 }

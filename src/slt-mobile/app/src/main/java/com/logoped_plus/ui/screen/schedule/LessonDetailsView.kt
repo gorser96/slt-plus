@@ -32,6 +32,7 @@ import java.util.Locale
 
 @Composable
 fun LessonDetailsView(
+    childrenReady: Boolean = true,
     uiModel: LessonUiModel,
     onBack: () -> Unit,
     onEdit: () -> Unit,
@@ -117,6 +118,7 @@ fun LessonDetailsView(
 
         if (comment != uiModel.comment || videoUris.toSet() != uiModel.videoUris.toSet()) {
             Button(
+                enabled = childrenReady,
                 onClick = onSave,
                 modifier = Modifier.fillMaxWidth()
             ) {

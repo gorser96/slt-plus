@@ -1,12 +1,14 @@
 package com.logoped_plus.ui.screen.schedule
 
 import com.logoped_plus.domain.model.Child
+import com.logoped_plus.domain.repository.ChildLoadState
 import com.logoped_plus.ui.screen.schedule.model.LessonUiModel
 import java.time.LocalDateTime
 import java.time.LocalDate
 import java.time.YearMonth
 
 data class ScheduleUiState(
+    val childLoadState: ChildLoadState = ChildLoadState.Loading(),
     val selectedLesson: LessonUiModel? = null,
     val isCreatingLesson: Boolean = false,
     val creationDateTime: LocalDateTime? = null,

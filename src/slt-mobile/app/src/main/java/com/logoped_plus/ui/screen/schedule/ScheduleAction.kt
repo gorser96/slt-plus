@@ -4,6 +4,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 sealed interface ScheduleAction {
+    data object RetryChildren : ScheduleAction
 
     data class SelectDate(
         val date: LocalDate

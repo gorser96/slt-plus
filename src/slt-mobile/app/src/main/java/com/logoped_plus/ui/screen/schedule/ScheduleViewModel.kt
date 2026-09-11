@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.logoped_plus.domain.model.Lesson
 import com.logoped_plus.domain.model.VideoAttachment
 import com.logoped_plus.domain.repository.ChildRepository
+import com.logoped_plus.domain.repository.ChildLoadState
 import com.logoped_plus.domain.repository.LessonRepository
 import com.logoped_plus.ui.screen.schedule.model.LessonUiModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,14 +24,16 @@ class ScheduleViewModel(
 ) : ViewModel() {
 
     private val today = LocalDate.now()
+    private var childrenById = childRepository.state.value.children.associateBy { it.id }
 
     private val _uiState = MutableStateFlow(
         ScheduleUiState(
+            childLoadState = childRepository.state.value,
             selectedDate = today,
             displayedMonth = YearMonth.from(today),
             displayedWeekStart = today.startOfWeek(),
             lessons = lessonRepository.getLessons().map { it.toUiModel() },
-            children = childRepository.children.value
+            children = childRepository.state.value.children
         )
     )
 
@@ -38,14 +41,16 @@ class ScheduleViewModel(
 
     init {
         viewModelScope.launch {
-            childRepository.children.collectLatest { children ->
+            childRepository.state.collectLatest { loadState ->
+                childrenById = loadState.children.associateBy { it.id }
                 _uiState.update { state ->
                     val lessons = lessonRepository
                         .getLessons()
                         .map { it.toUiModel() }
 
                     state.copy(
-                        children = children,
+                        childLoadState = loadState,
+                        children = loadState.children,
                         lessons = lessons,
                         selectedLesson = state.selectedLesson
                             ?.let { selectedLesson ->
@@ -59,6 +64,7 @@ class ScheduleViewModel(
 
     fun onAction(action: ScheduleAction) {
         when (action) {
+            ScheduleAction.RetryChildren -> childRepository.retryLoading()
             ScheduleAction.StartEditingLesson -> {
                 _uiState.update { it.copy(isEditingLesson = it.selectedLesson != null) }
             }
@@ -68,6 +74,7 @@ class ScheduleViewModel(
             }
 
             is ScheduleAction.UpdateLesson -> {
+                if (!canSave(action.childIds)) return
                 val original = lessonRepository.getLessonById(action.lessonId) ?: return
                 if (action.durationMinutes <= 0 || action.childIds.isEmpty()) return
                 lessonRepository.updateLesson(original.copy(
@@ -106,6 +113,7 @@ class ScheduleViewModel(
             }
 
             is ScheduleAction.CreateLesson -> {
+                if (!canSave(action.childIds) || action.durationMinutes <= 0) return
                 createLesson(
                     Lesson(
                         scheduledAt = action.scheduledAt,
@@ -143,7 +151,7 @@ class ScheduleViewModel(
             scheduledAt = scheduledAt,
             durationMinutes = durationMinutes,
             childNames = childIds
-                .mapNotNull { childRepository.getChildById(it)?.name }
+                .mapNotNull { childrenById[it]?.name }
                 .joinToString(", "),
             comment = comment,
             childIds = childIds,
@@ -155,6 +163,12 @@ class ScheduleViewModel(
         _uiState.update {
             it.copy(selectedDate = date)
         }
+    }
+
+    private fun canSave(ids: List<String>): Boolean {
+        val loaded = childRepository.state.value as? ChildLoadState.Ready ?: return false
+        val knownIds = loaded.children.map { it.id }.toSet()
+        return ids.isNotEmpty() && ids.all { it in knownIds }
     }
 
     private fun selectLesson(lessonId: String) {

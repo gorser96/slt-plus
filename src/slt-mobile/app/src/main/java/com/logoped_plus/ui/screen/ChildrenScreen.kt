@@ -1,152 +1,92 @@
 package com.logoped_plus.ui.screen
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.logoped_plus.domain.model.Child
+import androidx.compose.ui.window.DialogProperties
+import com.logoped_plus.domain.repository.ChildLoadState
+import com.logoped_plus.domain.repository.ChildWriteResult
 import com.logoped_plus.ui.screen.children.ChildrenViewModel
 
 @Composable
-fun ChildrenScreen(
-    viewModel: ChildrenViewModel
-) {
+fun ChildrenScreen(viewModel: ChildrenViewModel) {
     val state by viewModel.uiState.collectAsState()
-
-    var editingChild by remember { mutableStateOf<Child?>(null) }
-    var childName by remember { mutableStateOf("") }
-    var showDialog by remember { mutableStateOf(false) }
-
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(
-                items = state.children,
-                key = { it.id }
-            ) { child ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            editingChild = child
-                            childName = child.name
-                            showDialog = true
-                        }
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(text = child.name)
+    val ready = state.loadState is ChildLoadState.Ready
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().padding(16.dp)) {
+            ChildrenLoadStatus(state.loadState, viewModel::retryLoading)
+            if (ready && state.children.isEmpty()) Text("Детей пока нет")
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(state.children, key = { it.id }) { child ->
+                    Card(Modifier.fillMaxWidth().clickable(enabled = ready) { viewModel.openEdit(child) }) {
+                        Text(child.name, Modifier.padding(16.dp))
                     }
                 }
             }
         }
-
-        FloatingActionButton(
-            onClick = {
-                editingChild = null
-                childName = ""
-                showDialog = true
-            },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Добавить ребёнка"
-            )
-        }
+        if (ready) FloatingActionButton(
+            onClick = viewModel::openNew,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+        ) { Icon(Icons.Default.Add, contentDescription = "Добавить ребёнка") }
     }
-
-    if (showDialog) {
+    state.editor?.let { editor ->
         AlertDialog(
-            onDismissRequest = {
-                showDialog = false
-            },
-            title = {
-                Text(
-                    if (editingChild == null) {
-                        "Новый ребёнок"
-                    } else {
-                        "Редактирование"
-                    }
-                )
-            },
+            onDismissRequest = viewModel::cancel,
+            properties = DialogProperties(
+                dismissOnBackPress = !editor.saving,
+                dismissOnClickOutside = !editor.saving
+            ),
+            title = { Text(if (editor.isNew) "Новый ребёнок" else "Редактирование") },
             text = {
-                OutlinedTextField(
-                    value = childName,
-                    onValueChange = { childName = it },
-                    label = {
-                        Text("Имя")
-                    },
-                    singleLine = true
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = editor.name,
+                        onValueChange = viewModel::changeName,
+                        label = { Text("Имя") },
+                        enabled = !editor.saving,
+                        singleLine = true
+                    )
+                    if (editor.saving) Text("Сохранение…")
+                    ChildrenLoadStatus(state.loadState, viewModel::retryLoading, !editor.saving)
+                    editor.error?.let { reason ->
+                        Text(when (reason) {
+                            ChildWriteResult.Reason.NotFound -> "Ребёнок не найден. Закройте форму и повторите загрузку."
+                            ChildWriteResult.Reason.Conflict -> "Запись уже существует с другими данными."
+                            ChildWriteResult.Reason.InvalidName -> "Укажите имя ребёнка"
+                            ChildWriteResult.Reason.NotReady -> "Дождитесь загрузки детей"
+                            ChildWriteResult.Reason.StorageUnavailable -> "Не удалось сохранить ребёнка. Повторите попытку"
+                        }, color = MaterialTheme.colorScheme.error)
+                    }
+                }
             },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        val child = editingChild
-
-                        if (child == null) {
-                            viewModel.addChild(childName)
-                        } else {
-                            viewModel.updateChild(
-                                child.copy(name = childName)
-                            )
-                        }
-
-                        showDialog = false
-                    },
-                    enabled = childName.isNotBlank()
-                ) {
-                    Text(
-                        if (editingChild == null) {
-                            "Добавить"
-                        } else {
-                            "Сохранить"
-                        }
-                    )
+                TextButton(onClick = viewModel::save, enabled = ready && !editor.saving && editor.name.isNotBlank()) {
+                    Text(if (editor.isNew) "Добавить" else "Сохранить")
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = {
-                        showDialog = false
-                    }
-                ) {
-                    Text("Отмена")
-                }
+                TextButton(onClick = viewModel::cancel, enabled = !editor.saving) { Text("Отмена") }
             }
         )
+    }
+}
+
+@Composable
+internal fun ChildrenLoadStatus(state: ChildLoadState, onRetry: () -> Unit, retryEnabled: Boolean = true) {
+    when (state) {
+        is ChildLoadState.Loading -> Text("Загрузка детей…")
+        is ChildLoadState.Error -> Column {
+            Text("Не удалось загрузить детей", color = MaterialTheme.colorScheme.error)
+            TextButton(onClick = onRetry, enabled = retryEnabled) { Text("Повторить загрузку") }
+        }
+        is ChildLoadState.Ready -> Unit
     }
 }

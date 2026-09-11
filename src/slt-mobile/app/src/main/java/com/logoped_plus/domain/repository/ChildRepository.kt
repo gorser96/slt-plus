@@ -5,11 +5,8 @@ import kotlinx.coroutines.flow.StateFlow
 
 interface ChildRepository {
 
-    val children: StateFlow<List<Child>>
-
-    fun getChildById(id: String): Child?
-
-    fun addChild(child: Child)
-
-    fun updateChild(child: Child)
+    val state: StateFlow<ChildLoadState>
+    fun retryLoading()
+    suspend fun addChild(child: Child): ChildWriteResult
+    suspend fun updateChild(child: Child): ChildWriteResult
 }

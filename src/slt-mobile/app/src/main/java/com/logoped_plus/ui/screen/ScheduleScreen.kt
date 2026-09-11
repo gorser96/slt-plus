@@ -31,6 +31,7 @@ import com.logoped_plus.ui.screen.schedule.ScheduleUiState
 import com.logoped_plus.ui.screen.schedule.ScheduleViewMode
 import com.logoped_plus.ui.screen.schedule.ScheduleViewModel
 import com.logoped_plus.ui.screen.schedule.WeekScheduleView
+import com.logoped_plus.domain.repository.ChildLoadState
 
 @Composable
 fun ScheduleScreen(
@@ -45,12 +46,24 @@ fun ScheduleScreen(
 }
 
 @Composable
-private fun ScheduleContent(
+internal fun ScheduleContent(
+    uiState: ScheduleUiState,
+    onAction: (ScheduleAction) -> Unit
+) {
+    Column(Modifier.fillMaxSize()) {
+        ChildrenLoadStatus(uiState.childLoadState, { onAction(ScheduleAction.RetryChildren) })
+        ScheduleBody(uiState, onAction)
+    }
+}
+
+@Composable
+private fun ScheduleBody(
     uiState: ScheduleUiState,
     onAction: (ScheduleAction) -> Unit
 ) {
     val scrollState = rememberScrollState()
     val selectedLesson = uiState.selectedLesson
+    val childrenReady = uiState.childLoadState is ChildLoadState.Ready
     var commentDraft by rememberSaveable(selectedLesson?.id, selectedLesson?.comment) {
         mutableStateOf(selectedLesson?.comment.orEmpty())
     }
@@ -78,6 +91,7 @@ private fun ScheduleContent(
 
     if (selectedLesson != null && uiState.isEditingLesson) {
         LessonEditView(
+            childrenReady = childrenReady,
             lesson = selectedLesson.copy(comment = commentDraft, videoUris = videoDraft),
             children = uiState.children,
             onBack = { onAction(ScheduleAction.CancelEditingLesson) },
@@ -94,6 +108,7 @@ private fun ScheduleContent(
 
     if (selectedLesson != null) {
         LessonDetailsView(
+            childrenReady = childrenReady,
             uiModel = selectedLesson,
             comment = commentDraft,
             videoUris = videoDraft,
@@ -116,6 +131,7 @@ private fun ScheduleContent(
 
     if (uiState.isCreatingLesson) {
         LessonCreateView(
+            childrenReady = childrenReady,
             initialDate = uiState.creationDateTime ?: uiState.selectedDate.atStartOfDay(),
             onBack = {
                 onAction(ScheduleAction.CancelCreatingLesson)
