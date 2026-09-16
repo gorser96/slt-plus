@@ -1,18 +1,19 @@
 # com.logoped_plus.ui.screen.schedule.component
 
-Назначение: компоненты выбора даты, детей и работы с URI видео. [Общий указатель](../../../../../../../../../../PACKAGES.md).
+Выбор даты, участников и работа с внешними видео. [Общий указатель](../../../../../../../../../../PACKAGES.md).
 
-| Файл / символ | Ответственность |
+| Файл | Назначение |
 |---|---|
-| [LessonDateTimeFields.kt](LessonDateTimeFields.kt) | Дата слева, компактные поля часов и минут справа; числовая клавиатура, проверка диапазонов 0–23/0–59, сообщение об ошибке |
-| [LessonDateField.kt](LessonDateField.kt) | Поле `OutlinedTextField` с подписью «Дата» и иконкой календаря; нажатие открывает `DatePickerDialog` с `DatePicker`; подтверждение/отмена, преобразование даты через UTC без сдвига часового пояса |
-| [ChildMultiSelectField.kt](ChildMultiSelectField.kt) | Bottom sheet с множественным выбором ID, поиском по имени без учёта регистра при длине запроса от двух символов; подсказка при отсутствии детей |
-| [VideoAttachmentsEditor.kt](VideoAttachmentsEditor.kt) | `OpenMultipleDocuments` с `video/*`, получение постоянного разрешения чтения URI, устранение дублей, подтверждение открепления и ошибки выбора |
-| [VideoAttachmentLink.kt](VideoAttachmentLink.kt) | Чтение `DISPLAY_NAME` через ContentResolver на `Dispatchers.IO`; открытие видео внешним `ACTION_VIEW` с разрешением чтения; отображение ошибок |
+| [LessonDateTimeFields.kt](LessonDateTimeFields.kt) | Дата, raw часы/минуты, диапазоны 0–23/0–59 и enabled |
+| [LessonDateField.kt](LessonDateField.kt) | DatePickerDialog; календарная дата через UTC, блокировка открытого диалога |
+| [ChildMultiSelectField.kt](ChildMultiSelectField.kt) | Множественный выбор ID с поиском; enabled и guards открытого sheet |
+| [VideoAttachmentsEditor.kt](VideoAttachmentsEditor.kt) | OpenMultipleDocuments, постоянный grant, уникальные URI в порядке выбора, подтверждение открепления, enabled/sessionId |
+| [VideoAttachmentLink.kt](VideoAttachmentLink.kt) | Имя и проверка дескриптора на IO, закрытие перед ACTION_VIEW, ошибки файла/доступа/URI/проигрывателя |
 
-Потребители — формы из [schedule](../PACKAGE.md). `ChildMultiSelectField` принимает [Child](../../../../domain/model/PACKAGE.md) и возвращает набор ID. Видеоредактор принимает список строк и отдаёт новый список через `onChange`; итоговое сохранение выполняется через экран и ViewModel, см. [ui.screen](../../PACKAGE.md).
+Потребители — [формы занятия](../PACKAGE.md). Черновик принадлежит ViewModel. Открепление меняет связь после сохранения, не удаляет файл и не отзывает grant. Поздние результаты picker при disabled, другой сессии или пересоздании UI игнорируются. Перед запуском проигрывателя enabled проверяется повторно. Реальный постоянный grant и открытие после нового процесса требуют отдельной приёмки.
 
-Открепление меняет список вложений, не удаляет файл с устройства. Постоянное разрешение URI не означает постоянного хранения самого занятия: repository пока в памяти. Здесь нет загрузки на сервер или встроенного проигрывателя. Тестов выбора документов, открытия Intent и компонентов пока нет; изменения этих сценариев требуют проверки на устройстве/эмуляторе.
+## Проверки
 
+- [VideoAttachmentsTest.kt](../../../../../../../../androidTest/java/com/logoped_plus/ui/screen/schedule/component/VideoAttachmentsTest.kt) — androidTest.
 
-ChildMultiSelectField.enabled блокирует поле, кликабельную область и открытый выбор при недоступных детях. Сохранённые ID выбора не сбрасываются.
+Результаты и открытые критерии — [приёмка 010](../../../../../../../../../../openspec/verification/persist-lessons/validation.md).

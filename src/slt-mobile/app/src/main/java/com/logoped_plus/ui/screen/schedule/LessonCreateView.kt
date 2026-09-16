@@ -1,152 +1,48 @@
 package com.logoped_plus.ui.screen.schedule
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.logoped_plus.domain.model.Child
-import com.logoped_plus.ui.screen.schedule.component.ChildMultiSelectField
-import com.logoped_plus.ui.screen.schedule.component.LessonDateTimeFields
+import com.logoped_plus.ui.screen.schedule.component.*
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
 
 @Composable
-fun LessonCreateView(
-    childrenReady: Boolean = true,
-    initialDate: LocalDateTime,
-    children: List<Child>,
-    onBack: () -> Unit,
-    onCreate: (LocalDateTime, List<String>, Int) -> Unit
-) {
-    var dateEpochDay by rememberSaveable {
-        mutableStateOf(initialDate.toLocalDate().toEpochDay())
-    }
-    var hour by rememberSaveable {
-        mutableStateOf(initialDate.hour.toString().padStart(2, '0'))
-    }
-    var minute by rememberSaveable {
-        mutableStateOf(initialDate.minute.toString().padStart(2, '0'))
-    }
-    val isTimeValid = hour.toIntOrNull() in 0..23 && minute.toIntOrNull() in 0..59
+fun LessonCreateView(editor: LessonEditorState, children: List<Child>, childrenReady: Boolean, canSave: Boolean, onAction: (ScheduleAction) -> Unit) {
+    LessonForm(editor, children, childrenReady, canSave, onAction)
+}
 
-    var selectedChildIds by rememberSaveable {
-        mutableStateOf(emptyList<String>())
-    }
-
-    var durationMinutes by rememberSaveable {
-        mutableStateOf("40")
-    }
-
-    val duration = durationMinutes.toIntOrNull()
-    val isDurationValid = duration != null && duration > 0
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextButton(
-                onClick = onBack
-            ) {
-                Text("← Назад")
-            }
-
-            Text(
-                text = "Новое занятие",
-                style = MaterialTheme.typography.titleLarge
-            )
+@Composable
+internal fun LessonForm(editor: LessonEditorState, children: List<Child>, childrenReady: Boolean, canSave: Boolean, onAction: (ScheduleAction) -> Unit) {
+    val creating = editor.mode == LessonEditorMode.CREATE
+    val enabled = !editor.saving
+    fun text(field: LessonTextField, value: String) { if (enabled) onAction(ScheduleAction.ChangeText(editor.sessionId, field, value)) }
+    Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        TextButton(enabled = enabled, onClick = { onAction(if (creating) ScheduleAction.CancelCreatingLesson else ScheduleAction.CancelEditingLesson) }) { Text("← Назад") }
+        Text(if (creating) "Новое занятие" else "Редактирование занятия", style = MaterialTheme.typography.titleLarge)
+        LessonDateTimeFields(
+            date = LocalDate.ofEpochDay(editor.epochDay), onDateChange = { onAction(ScheduleAction.ChangeDate(editor.sessionId, it)) },
+            hour = editor.hour, onHourChange = { text(LessonTextField.HOUR, it) },
+            minute = editor.minute, onMinuteChange = { text(LessonTextField.MINUTE, it) }, enabled = enabled
+        )
+        OutlinedTextField(value = editor.duration, onValueChange = { text(LessonTextField.DURATION, it) },
+            enabled = enabled, label = { Text("Длительность, мин") }, singleLine = true,
+            isError = editor.duration.toIntOrNull()?.let { it > 0 } != true,
+            supportingText = { if (editor.duration.toIntOrNull()?.let { it > 0 } != true) Text("Укажите длительность больше 0 минут") })
+        Text("Дети", style = MaterialTheme.typography.titleMedium)
+        ChildMultiSelectField(children = children, selectedChildIds = editor.childIds.toSet(), enabled = enabled && childrenReady,
+            onSelectionChange = { onAction(ScheduleAction.ChangeChildren(editor.sessionId, it.toList())) })
+        if (!creating) {
+            OutlinedTextField(value = editor.comment, onValueChange = { text(LessonTextField.COMMENT, it) }, enabled = enabled,
+                label = { Text("Комментарий специалиста") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+            VideoAttachmentsEditor(editor.videoUris, { onAction(ScheduleAction.ChangeVideos(editor.sessionId, it)) }, enabled, editor.sessionId)
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Column(
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            LessonDateTimeFields(
-                date = LocalDate.ofEpochDay(dateEpochDay),
-                onDateChange = { dateEpochDay = it.toEpochDay() },
-                hour = hour,
-                onHourChange = { hour = it },
-                minute = minute,
-                onMinuteChange = { minute = it }
-            )
-
-            OutlinedTextField(
-                value = durationMinutes,
-                onValueChange = { value ->
-                    durationMinutes = value.filter { it.isDigit() }
-                },
-                label = {
-                    Text("Длительность, мин")
-                },
-                singleLine = true,
-                isError = !isDurationValid,
-                supportingText = {
-                    if (!isDurationValid) {
-                        Text("Укажите длительность больше 0 минут")
-                    }
-                }
-            )
-
-            Text(
-                text = "Дети",
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            ChildMultiSelectField(
-                enabled = childrenReady,
-                children = children,
-                selectedChildIds = selectedChildIds.toSet(),
-                onSelectionChange = {
-                    selectedChildIds = it.toList()
-                }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Button(
-            onClick = {
-                onCreate(
-                    LocalDateTime.of(
-                        LocalDate.ofEpochDay(dateEpochDay),
-                        LocalTime.of(hour.toInt(), minute.toInt())
-                    ),
-                    selectedChildIds.toList(),
-                    durationMinutes.toIntOrNull() ?: 40
-                )
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = childrenReady && isTimeValid && selectedChildIds.isNotEmpty() && isDurationValid
-        ) {
-            Text("Создать занятие")
+        Button(enabled = canSave, onClick = { onAction(ScheduleAction.ConfirmLesson(editor.sessionId)) }, modifier = Modifier.fillMaxWidth()) {
+            Text(if (editor.saving) "Сохранение…" else if (creating) "Создать занятие" else "Сохранить изменения")
         }
     }
 }

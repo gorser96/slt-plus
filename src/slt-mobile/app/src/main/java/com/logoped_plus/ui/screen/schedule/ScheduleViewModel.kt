@@ -3,264 +3,133 @@ package com.logoped_plus.ui.screen.schedule
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.logoped_plus.domain.model.Lesson
-import com.logoped_plus.domain.model.VideoAttachment
-import com.logoped_plus.domain.repository.ChildRepository
-import com.logoped_plus.domain.repository.ChildLoadState
-import com.logoped_plus.domain.repository.LessonRepository
+import com.logoped_plus.domain.repository.*
 import com.logoped_plus.ui.screen.schedule.model.LessonUiModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
 import java.time.LocalDate
 import java.time.YearMonth
+import java.util.UUID
 
-class ScheduleViewModel(
-    private val lessonRepository: LessonRepository,
-    private val childRepository: ChildRepository
-) : ViewModel() {
-
+class ScheduleViewModel(private val lessonRepository: LessonRepository, private val childRepository: ChildRepository) : ViewModel() {
     private val today = LocalDate.now()
-    private var childrenById = childRepository.state.value.children.associateBy { it.id }
-
-    private val _uiState = MutableStateFlow(
-        ScheduleUiState(
-            childLoadState = childRepository.state.value,
-            selectedDate = today,
-            displayedMonth = YearMonth.from(today),
-            displayedWeekStart = today.startOfWeek(),
-            lessons = lessonRepository.getLessons().map { it.toUiModel() },
-            children = childRepository.state.value.children
-        )
-    )
-
-    val uiState: StateFlow<ScheduleUiState> = _uiState.asStateFlow()
+    private var confirmed: Lesson? = null
+    private val mutableState = MutableStateFlow(ScheduleUiState(
+        selectedDate = today, displayedMonth = YearMonth.from(today), displayedWeekStart = today.startOfWeek(),
+        childLoadState = childRepository.state.value, lessonLoadState = lessonRepository.state.value,
+        children = childRepository.state.value.children
+    ))
+    val uiState = mutableState.asStateFlow()
 
     init {
+        refresh()
         viewModelScope.launch {
-            childRepository.state.collectLatest { loadState ->
-                childrenById = loadState.children.associateBy { it.id }
-                _uiState.update { state ->
-                    val lessons = lessonRepository
-                        .getLessons()
-                        .map { it.toUiModel() }
-
-                    state.copy(
-                        childLoadState = loadState,
-                        children = loadState.children,
-                        lessons = lessons,
-                        selectedLesson = state.selectedLesson
-                            ?.let { selectedLesson ->
-                                lessons.find { it.id == selectedLesson.id }
-                            }
-                    )
-                }
-            }
+            combine(childRepository.state, lessonRepository.state) { _, _ -> Unit }
+                .collect { refresh() }
         }
+    }
+
+    private fun refresh(children: ChildLoadState = childRepository.state.value, loaded: LessonLoadState = lessonRepository.state.value) {
+        val committed = confirmed
+        if (loaded is LessonLoadState.Ready && committed != null && loaded.lessons.any { it == committed }) confirmed = null
+        val overlay = confirmed
+        val rows = if (overlay == null) loaded.lessons else if (loaded.lessons.any { it.id == overlay.id })
+            loaded.lessons.map { if (it.id == overlay.id) overlay else it } else loaded.lessons + overlay
+        val state = mutableState.value
+        val models = rows.map { toUiModel(it, children) }
+        // A missing row must not discard a draft. Names can change independently of its raw input.
+        val selected = state.editor?.takeIf { it.mode != LessonEditorMode.CREATE }?.original?.let { toUiModel(it, children) }
+        mutableState.value = state.copy(childLoadState = children, lessonLoadState = loaded, children = children.children,
+            lessons = models, selectedLesson = selected, awaitingSnapshot = confirmed != null)
     }
 
     fun onAction(action: ScheduleAction) {
+        if (mutableState.value.saving) return
+        val state = mutableState.value
         when (action) {
             ScheduleAction.RetryChildren -> childRepository.retryLoading()
-            ScheduleAction.StartEditingLesson -> {
-                _uiState.update { it.copy(isEditingLesson = it.selectedLesson != null) }
-            }
-
-            ScheduleAction.CancelEditingLesson -> {
-                _uiState.update { it.copy(isEditingLesson = false) }
-            }
-
-            is ScheduleAction.UpdateLesson -> {
-                if (!canSave(action.childIds)) return
-                val original = lessonRepository.getLessonById(action.lessonId) ?: return
-                if (action.durationMinutes <= 0 || action.childIds.isEmpty()) return
-                lessonRepository.updateLesson(original.copy(
-                    scheduledAt = action.scheduledAt,
-                    childIds = action.childIds,
-                    durationMinutes = action.durationMinutes,
-                    comment = action.comment,
-                    videoAttachments = action.videoUris.map { VideoAttachment(it) }
-                ))
-                val lessons = lessonRepository.getLessons().map { it.toUiModel() }
-                _uiState.update { it.copy(
-                    lessons = lessons,
-                    selectedLesson = lessons.find { it.id == action.lessonId },
-                    isEditingLesson = false
-                ) }
-            }
-
-            is ScheduleAction.SelectDate -> {
-                selectDate(action.date)
-            }
-
-            is ScheduleAction.SelectLesson -> {
-                selectLesson(action.lessonId)
-            }
-
-            ScheduleAction.CloseLesson -> {
-                closeLesson()
-            }
-
+            ScheduleAction.RetryLessons -> lessonRepository.retryLoading()
             is ScheduleAction.StartCreatingLesson -> {
-                startCreatingLesson(action.scheduledAt)
+                val date = action.scheduledAt ?: state.selectedDate.atStartOfDay()
+                setEditor(LessonEditorState(mode = LessonEditorMode.CREATE, epochDay = date.toLocalDate().toEpochDay(),
+                    hour = date.hour.toString().padStart(2, '0'), minute = date.minute.toString().padStart(2, '0')))
             }
-
-            ScheduleAction.CancelCreatingLesson -> {
-                cancelCreatingLesson()
+            is ScheduleAction.SelectLesson -> {
+                val lesson = confirmed?.takeIf { it.id == action.lessonId }
+                    ?: lessonRepository.state.value.lessons.find { it.id == action.lessonId } ?: return
+                setEditor(LessonEditorState.from(lesson))
             }
-
-            is ScheduleAction.CreateLesson -> {
-                if (!canSave(action.childIds) || action.durationMinutes <= 0) return
-                createLesson(
-                    Lesson(
-                        scheduledAt = action.scheduledAt,
-                        durationMinutes = action.durationMinutes,
-                        childIds = action.childIds
-                    )
-                )
+            ScheduleAction.StartEditingLesson -> {
+                val editor = state.editor?.takeIf { it.mode == LessonEditorMode.DETAILS } ?: return
+                mutableState.value = state.copy(detailsDraft = editor)
+                setEditor(editor.copy(sessionId = UUID.randomUUID().toString(), mode = LessonEditorMode.EDIT, status = LessonEditorStatus.Idle), keepDetails = true)
             }
-
-            is ScheduleAction.ChangeViewMode -> {
-                changeViewMode(action.mode)
-            }
-
-            ScheduleAction.PreviousMonth -> {
-                showPreviousMonth()
-            }
-
-            ScheduleAction.NextMonth -> {
-                showNextMonth()
-            }
-
-            ScheduleAction.PreviousWeek -> {
-                showPreviousWeek()
-            }
-
-            ScheduleAction.NextWeek -> {
-                showNextWeek()
-            }
-        }
-    }
-
-    private fun Lesson.toUiModel(): LessonUiModel {
-        return LessonUiModel(
-            id = id,
-            scheduledAt = scheduledAt,
-            durationMinutes = durationMinutes,
-            childNames = childIds
-                .mapNotNull { childrenById[it]?.name }
-                .joinToString(", "),
-            comment = comment,
-            childIds = childIds,
-            videoUris = videoAttachments.map { it.uri }
-        )
-    }
-
-    private fun selectDate(date: LocalDate) {
-        _uiState.update {
-            it.copy(selectedDate = date)
-        }
-    }
-
-    private fun canSave(ids: List<String>): Boolean {
-        val loaded = childRepository.state.value as? ChildLoadState.Ready ?: return false
-        val knownIds = loaded.children.map { it.id }.toSet()
-        return ids.isNotEmpty() && ids.all { it in knownIds }
-    }
-
-    private fun selectLesson(lessonId: String) {
-        _uiState.update { state ->
-            state.copy(
-                selectedLesson = state.lessons.find { it.id == lessonId }
-            )
-        }
-    }
-
-    private fun closeLesson() {
-        _uiState.update {
-            it.copy(selectedLesson = null, isEditingLesson = false)
-        }
-    }
-
-    private fun startCreatingLesson(scheduledAt: LocalDateTime?) {
-        _uiState.update {
-            it.copy(
-                isCreatingLesson = true,
-                creationDateTime = scheduledAt ?: it.selectedDate.atStartOfDay()
-            )
-        }
-    }
-
-    private fun cancelCreatingLesson() {
-        _uiState.update {
-            it.copy(isCreatingLesson = false, creationDateTime = null)
-        }
-    }
-
-    private fun createLesson(lesson: Lesson) {
-        lessonRepository.addLesson(lesson)
-
-        _uiState.update {
-            it.copy(
-                lessons = lessonRepository.getLessons().map { lesson -> lesson.toUiModel() },
-                isCreatingLesson = false,
-                creationDateTime = null
-            )
-        }
-    }
-
-    private fun changeViewMode(mode: ScheduleViewMode) {
-        _uiState.update { state ->
-            when (mode) {
-                ScheduleViewMode.MONTH -> {
-                    state.copy(
-                        viewMode = mode,
-                        displayedMonth = YearMonth.from(state.selectedDate)
-                    )
+            ScheduleAction.CancelEditingLesson -> setEditor(state.detailsDraft)
+            ScheduleAction.CloseLesson, ScheduleAction.CancelCreatingLesson -> setEditor(null)
+            is ScheduleAction.ChangeText -> change(action.sessionId) { editor ->
+                if (editor.mode == LessonEditorMode.DETAILS && action.field != LessonTextField.COMMENT) editor
+                else when (action.field) {
+                    LessonTextField.HOUR -> editor.copy(hour = action.value)
+                    LessonTextField.MINUTE -> editor.copy(minute = action.value)
+                    LessonTextField.DURATION -> editor.copy(duration = action.value)
+                    LessonTextField.COMMENT -> if (editor.mode == LessonEditorMode.CREATE) editor else editor.copy(comment = action.value)
                 }
+            }
+            is ScheduleAction.ChangeDate -> change(action.sessionId) { if (it.mode == LessonEditorMode.DETAILS) it else it.copy(epochDay = action.date.toEpochDay()) }
+            is ScheduleAction.ChangeChildren -> change(action.sessionId) { if (it.mode == LessonEditorMode.DETAILS) it else it.copy(childIds = action.ids.distinct()) }
+            is ScheduleAction.ChangeVideos -> change(action.sessionId) { if (it.mode == LessonEditorMode.CREATE) it else it.copy(videoUris = action.uris.distinct()) }
+            is ScheduleAction.ConfirmLesson -> confirm(action.sessionId)
+            is ScheduleAction.SelectDate -> mutableState.value = state.copy(selectedDate = action.date)
+            is ScheduleAction.ChangeViewMode -> mutableState.value = state.copy(viewMode = action.mode,
+                displayedMonth = YearMonth.from(state.selectedDate), displayedWeekStart = state.selectedDate.startOfWeek())
+            ScheduleAction.PreviousMonth -> mutableState.value = state.copy(displayedMonth = state.displayedMonth.minusMonths(1))
+            ScheduleAction.NextMonth -> mutableState.value = state.copy(displayedMonth = state.displayedMonth.plusMonths(1))
+            ScheduleAction.PreviousWeek -> mutableState.value = state.copy(displayedWeekStart = state.displayedWeekStart.minusWeeks(1))
+            ScheduleAction.NextWeek -> mutableState.value = state.copy(displayedWeekStart = state.displayedWeekStart.plusWeeks(1))
+        }
+    }
 
-                ScheduleViewMode.WEEK -> {
-                    state.copy(
-                        viewMode = mode,
-                        displayedWeekStart = state.selectedDate.startOfWeek()
-                    )
+    private fun change(sessionId: String, transform: (LessonEditorState) -> LessonEditorState) {
+        val editor = mutableState.value.editor?.takeIf { it.sessionId == sessionId } ?: return
+        setEditor(transform(editor).copy(status = LessonEditorStatus.Idle), keepDetails = true)
+    }
+
+    private fun setEditor(editor: LessonEditorState?, keepDetails: Boolean = false) {
+        mutableState.value = mutableState.value.copy(editor = editor,
+            detailsDraft = if (keepDetails) mutableState.value.detailsDraft else null,
+            isCreatingLesson = editor?.mode == LessonEditorMode.CREATE,
+            isEditingLesson = editor?.mode == LessonEditorMode.EDIT,
+            creationDateTime = if (editor?.mode == LessonEditorMode.CREATE) LocalDate.ofEpochDay(editor.epochDay).atStartOfDay() else null)
+        refresh()
+    }
+
+    private fun confirm(sessionId: String) {
+        // Read repository readiness now, even when its collector has not been dispatched yet.
+        refresh()
+        val state = mutableState.value
+        val editor = state.editor?.takeIf { it.sessionId == sessionId } ?: return
+        if (!state.canSave) return
+        if (editor.mode == LessonEditorMode.DETAILS && !editor.changed) return
+        val lesson = editor.toLesson() ?: return
+        setEditor(editor.copy(status = LessonEditorStatus.Saving), keepDetails = true)
+        viewModelScope.launch {
+            val result = if (editor.mode == LessonEditorMode.CREATE) lessonRepository.addLesson(lesson) else lessonRepository.updateLesson(lesson)
+            when (result) {
+                is LessonWriteResult.Failure -> setEditor(editor.copy(status = LessonEditorStatus.Failure(result.reason)), keepDetails = true)
+                is LessonWriteResult.Success -> {
+                    confirmed = result.lesson
+                    setEditor(if (editor.mode == LessonEditorMode.CREATE) null else LessonEditorState.from(result.lesson))
                 }
             }
         }
     }
 
-    private fun showPreviousMonth() {
-        _uiState.update {
-            it.copy(
-                displayedMonth = it.displayedMonth.minusMonths(1)
-            )
-        }
-    }
-
-    private fun showNextMonth() {
-        _uiState.update {
-            it.copy(
-                displayedMonth = it.displayedMonth.plusMonths(1)
-            )
-        }
-    }
-
-    private fun showPreviousWeek() {
-        _uiState.update {
-            it.copy(
-                displayedWeekStart = it.displayedWeekStart.minusWeeks(1)
-            )
-        }
-    }
-
-    private fun showNextWeek() {
-        _uiState.update {
-            it.copy(
-                displayedWeekStart = it.displayedWeekStart.plusWeeks(1)
-            )
-        }
+    private fun toUiModel(lesson: Lesson, children: ChildLoadState): LessonUiModel {
+        val byId = children.children.associateBy { it.id }
+        return LessonUiModel(lesson.id, lesson.scheduledAt, lesson.durationMinutes,
+            lesson.childIds.mapNotNull { byId[it]?.name }.joinToString(", "), lesson.comment, lesson.childIds,
+            lesson.videoAttachments.map { it.uri })
     }
 }

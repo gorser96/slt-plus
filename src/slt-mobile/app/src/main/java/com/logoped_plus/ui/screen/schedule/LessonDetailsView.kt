@@ -32,7 +32,8 @@ import java.util.Locale
 
 @Composable
 fun LessonDetailsView(
-    childrenReady: Boolean = true,
+    canSave: Boolean,
+    editor: LessonEditorState,
     uiModel: LessonUiModel,
     onBack: () -> Unit,
     onEdit: () -> Unit,
@@ -54,7 +55,7 @@ fun LessonDetailsView(
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextButton(
-                onClick = onBack
+                enabled = !editor.saving, onClick = onBack
             ) {
                 Text("← Назад")
             }
@@ -64,7 +65,7 @@ fun LessonDetailsView(
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.weight(1f)
             )
-            IconButton(onClick = onEdit) {
+            IconButton(enabled = !editor.saving, onClick = onEdit) {
                 Icon(Icons.Default.Edit, contentDescription = "Редактировать занятие")
             }
         }
@@ -76,7 +77,7 @@ fun LessonDetailsView(
             value = uiModel.scheduledAt.toLocalDate().format(
                 DateTimeFormatter.ofPattern(
                     "dd MMMM yyyy",
-                    Locale("ru")
+                    Locale.forLanguageTag("ru")
                 )
             )
         )
@@ -106,19 +107,19 @@ fun LessonDetailsView(
         LessonDetailsRow("Длительность", "${uiModel.durationMinutes} мин")
         HorizontalDivider()
         OutlinedTextField(
-            value = comment,
+            enabled = !editor.saving, value = comment,
             onValueChange = onCommentChange,
             label = { Text("Комментарий специалиста") },
             minLines = 3,
             modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
         )
-        VideoAttachmentsEditor(videoUris, onVideosChange)
+        VideoAttachmentsEditor(videoUris, onVideosChange, !editor.saving, editor.sessionId)
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        if (comment != uiModel.comment || videoUris.toSet() != uiModel.videoUris.toSet()) {
+        if (comment != uiModel.comment || videoUris != uiModel.videoUris) {
             Button(
-                enabled = childrenReady,
+                enabled = canSave,
                 onClick = onSave,
                 modifier = Modifier.fillMaxWidth()
             ) {

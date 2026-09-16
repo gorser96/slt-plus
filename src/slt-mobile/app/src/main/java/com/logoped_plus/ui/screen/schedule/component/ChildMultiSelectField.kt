@@ -158,7 +158,7 @@ fun ChildMultiSelectField(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
+                                .clickable(enabled = enabled) {
                                     val newSelection =
                                         if (child.id in selectedChildIds) {
                                             selectedChildIds - child.id
@@ -166,11 +166,11 @@ fun ChildMultiSelectField(
                                             selectedChildIds + child.id
                                         }
 
-                                    onSelectionChange(newSelection)
+                                    if (enabled) onSelectionChange(newSelection)
                                 },
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Checkbox(
+                            Checkbox(enabled = enabled,
                                 checked = child.id in selectedChildIds,
                                 onCheckedChange = { checked ->
                                     val newSelection =
@@ -180,7 +180,7 @@ fun ChildMultiSelectField(
                                             selectedChildIds - child.id
                                         }
 
-                                    onSelectionChange(newSelection)
+                                    if (enabled) onSelectionChange(newSelection)
                                 }
                             )
 

@@ -31,7 +31,8 @@ import com.logoped_plus.ui.screen.schedule.ScheduleUiState
 import com.logoped_plus.ui.screen.schedule.ScheduleViewMode
 import com.logoped_plus.ui.screen.schedule.ScheduleViewModel
 import com.logoped_plus.ui.screen.schedule.WeekScheduleView
-import com.logoped_plus.domain.repository.ChildLoadState
+import com.logoped_plus.domain.repository.*
+import com.logoped_plus.ui.screen.schedule.*
 
 @Composable
 fun ScheduleScreen(
@@ -52,6 +53,7 @@ internal fun ScheduleContent(
 ) {
     Column(Modifier.fillMaxSize()) {
         ChildrenLoadStatus(uiState.childLoadState, { onAction(ScheduleAction.RetryChildren) })
+        LessonLoadStatus(uiState, onAction)
         ScheduleBody(uiState, onAction)
     }
 }
@@ -64,93 +66,35 @@ private fun ScheduleBody(
     val scrollState = rememberScrollState()
     val selectedLesson = uiState.selectedLesson
     val childrenReady = uiState.childLoadState is ChildLoadState.Ready
-    var commentDraft by rememberSaveable(selectedLesson?.id, selectedLesson?.comment) {
-        mutableStateOf(selectedLesson?.comment.orEmpty())
+    val editor = uiState.editor
+    BackHandler(enabled = editor != null) {
+        if (!uiState.saving) onAction(when (editor?.mode) {
+            LessonEditorMode.CREATE -> ScheduleAction.CancelCreatingLesson
+            LessonEditorMode.EDIT -> ScheduleAction.CancelEditingLesson
+            else -> ScheduleAction.CloseLesson
+        })
     }
-    var videoDraft by rememberSaveable(selectedLesson?.id, selectedLesson?.videoUris) {
-        mutableStateOf(selectedLesson?.videoUris.orEmpty())
-    }
-
-    BackHandler(
-        enabled = selectedLesson != null || uiState.isCreatingLesson
-    ) {
-        when {
-            uiState.isEditingLesson -> {
-                onAction(ScheduleAction.CancelEditingLesson)
-            }
-
-            selectedLesson != null -> {
-                onAction(ScheduleAction.CloseLesson)
-            }
-
-            uiState.isCreatingLesson -> {
-                onAction(ScheduleAction.CancelCreatingLesson)
+    if (editor != null) {
+        androidx.compose.runtime.key(editor.sessionId) {
+            when (editor.mode) {
+                LessonEditorMode.CREATE -> LessonCreateView(editor, uiState.children, childrenReady, uiState.canSave, onAction)
+                LessonEditorMode.EDIT -> LessonEditView(editor, uiState.children, childrenReady, uiState.canSave, onAction)
+                LessonEditorMode.DETAILS -> selectedLesson?.let {
+                    LessonDetailsView(canSave = uiState.canSave, editor = editor, uiModel = it,
+                        onBack = { onAction(ScheduleAction.CloseLesson) }, onEdit = { onAction(ScheduleAction.StartEditingLesson) },
+                        comment = editor.comment, videoUris = editor.videoUris,
+                        onCommentChange = { value -> onAction(ScheduleAction.ChangeText(editor.sessionId, LessonTextField.COMMENT, value)) },
+                        onVideosChange = { uris -> onAction(ScheduleAction.ChangeVideos(editor.sessionId, uris)) },
+                        onSave = { onAction(ScheduleAction.ConfirmLesson(editor.sessionId)) })
+                }
             }
         }
-    }
-
-    if (selectedLesson != null && uiState.isEditingLesson) {
-        LessonEditView(
-            childrenReady = childrenReady,
-            lesson = selectedLesson.copy(comment = commentDraft, videoUris = videoDraft),
-            children = uiState.children,
-            onBack = { onAction(ScheduleAction.CancelEditingLesson) },
-            onSave = { scheduledAt, childIds, durationMinutes, comment, videoUris ->
-                commentDraft = comment
-                videoDraft = videoUris
-                onAction(ScheduleAction.UpdateLesson(
-                    selectedLesson.id, scheduledAt, childIds, durationMinutes, comment, videoUris
-                ))
-            }
-        )
         return
     }
-
-    if (selectedLesson != null) {
-        LessonDetailsView(
-            childrenReady = childrenReady,
-            uiModel = selectedLesson,
-            comment = commentDraft,
-            videoUris = videoDraft,
-            onCommentChange = { commentDraft = it },
-            onVideosChange = { videoDraft = it },
-            onSave = {
-                onAction(ScheduleAction.UpdateLesson(
-                    selectedLesson.id, selectedLesson.scheduledAt, selectedLesson.childIds,
-                    selectedLesson.durationMinutes, commentDraft, videoDraft
-                ))
-            },
-            onEdit = { onAction(ScheduleAction.StartEditingLesson) },
-            onBack = {
-                onAction(ScheduleAction.CloseLesson)
-            }
-        )
-
+    if (uiState.lessonLoadState !is LessonLoadState.Ready && uiState.lessons.isEmpty()) {
+        Button(onClick = { onAction(ScheduleAction.StartCreatingLesson()) }) { Text("Добавить занятие") }
         return
     }
-
-    if (uiState.isCreatingLesson) {
-        LessonCreateView(
-            childrenReady = childrenReady,
-            initialDate = uiState.creationDateTime ?: uiState.selectedDate.atStartOfDay(),
-            onBack = {
-                onAction(ScheduleAction.CancelCreatingLesson)
-            },
-            onCreate = { scheduledAt, childIds, durationMinutes ->
-                onAction(
-                    ScheduleAction.CreateLesson(
-                        scheduledAt = scheduledAt,
-                        childIds = childIds,
-                        durationMinutes = durationMinutes
-                    )
-                )
-            },
-            children = uiState.children
-        )
-
-        return
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -257,6 +201,33 @@ private fun ScheduleViewModeSelector(
             )
         ) {
             Text("Неделя")
+        }
+    }
+}
+
+@Composable
+private fun LessonLoadStatus(state: ScheduleUiState, onAction: (ScheduleAction) -> Unit) {
+    when (state.lessonLoadState) {
+        is LessonLoadState.Loading -> Text(if (state.awaitingSnapshot) "Изменения сохранены. Обновление расписания…" else "Загрузка занятий…")
+        is LessonLoadState.Error -> {
+            Text(if (state.awaitingSnapshot) "Изменения сохранены. Не удалось обновить расписание" else "Не удалось загрузить занятия")
+            Button(enabled = !state.saving, onClick = { onAction(ScheduleAction.RetryLessons) }) { Text("Повторить загрузку занятий") }
+        }
+        is LessonLoadState.Ready -> if (state.awaitingSnapshot) Text("Изменения сохранены. Обновление расписания…")
+    }
+    val reason = (state.editor?.status as? LessonEditorStatus.Failure)?.reason
+    if (reason != null) {
+        Text(when (reason) {
+            LessonWriteResult.Reason.StorageUnavailable -> "Не удалось сохранить занятие. Повторите сохранение."
+            LessonWriteResult.Reason.NotReady -> "Дождитесь загрузки данных и повторите сохранение."
+            LessonWriteResult.Reason.InvalidData -> "Проверьте дату, время, длительность и участников."
+            LessonWriteResult.Reason.UnknownChild -> "Участник не найден. Обновите данные детей и исправьте выбор."
+            LessonWriteResult.Reason.NotFound -> "Занятие не найдено. Обновите данные. Черновик сохранён."
+            LessonWriteResult.Reason.Conflict -> "Занятие с этим идентификатором уже существует. Обновите данные."
+        })
+        if (reason in listOf(LessonWriteResult.Reason.NotFound, LessonWriteResult.Reason.Conflict, LessonWriteResult.Reason.NotReady)) {
+            Button(enabled = !state.saving && state.lessonLoadState !is LessonLoadState.Loading,
+                onClick = { onAction(ScheduleAction.RetryLessons) }) { Text("Обновить данные") }
         }
     }
 }

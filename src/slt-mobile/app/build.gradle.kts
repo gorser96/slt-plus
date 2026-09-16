@@ -34,9 +34,13 @@ android {
     buildFeatures {
         compose = true
     }
+    sourceSets.getByName("androidTest").assets.srcDir("schemas")
 }
 
 dependencies {
+    // Room testing uses serialization 1.8.1; align debug runtime for APK/test consistency.
+    // Release dependencies are unchanged.
+    debugImplementation(platform("org.jetbrains.kotlinx:kotlinx-serialization-bom:1.8.1"))
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.kotlinx.coroutines.test)
@@ -69,4 +73,9 @@ class RoomSchemaArgumentProvider(
 
 ksp {
     arg(RoomSchemaArgumentProvider(file("schemas")))
+}
+
+// Migration tests consume the schemas exported by KSP in this same build.
+tasks.matching { it.name == "mergeDebugAndroidTestAssets" }.configureEach {
+    dependsOn("kspDebugKotlin")
 }

@@ -1,18 +1,20 @@
 # com.logoped_plus.domain.repository
 
-Назначение: интерфейсы доступа к доменным данным. [Общий указатель](../../../../../../../../PACKAGES.md).
-
-| Файл / символ | Контракт |
-|---|---|
-| [ChildRepository.kt](ChildRepository.kt) | `state: StateFlow<ChildLoadState>`, `retryLoading`, suspend `addChild`/`updateChild` |
-| [LessonRepository.kt](LessonRepository.kt) | `getLessons`, `getLessonsByDate`, `getLessonById`, `addLesson`, `updateLesson` |
-
-Типы данных — [domain.model](../model/PACKAGE.md); реализации — [data.repository](../../data/repository/PACKAGE.md). Клиенты: [ChildrenViewModel](../../ui/screen/children/PACKAGE.md), [ScheduleViewModel](../../ui/screen/schedule/PACKAGE.md). Связывание выполняется в [App](../../PACKAGE.md).
-
-Операции записи детей — suspend, состояние загрузки/ошибки — StateFlow. Методы занятий синхронные; занятия читаются явно после изменений в ViewModel. Контрактов удаления пока нет. При изменении API ищи реализации и все вызовы символа в `app/src`. Прямых тестов интерфейсов нет; существующий тест реализации указан в карте `data.repository`.
-
+Контракты данных без Android и Room. [Общий указатель](../../../../../../../../PACKAGES.md).
 
 | Файл | Назначение |
 |---|---|
-| [ChildLoadState.kt](ChildLoadState.kt) | Loading/Ready/Error; предыдущий список только для просмотра |
-| [ChildWriteResult.kt](ChildWriteResult.kt) | Success после commit либо типизированная причина отказа |
+| [ChildRepository.kt](ChildRepository.kt) | StateFlow ChildLoadState, retryLoading, suspend addChild/updateChild |
+| [ChildLoadState.kt](ChildLoadState.kt) | Loading/Ready/Error с последним списком детей |
+| [ChildWriteResult.kt](ChildWriteResult.kt) | Success после commit либо типизированный отказ |
+| [LessonRepository.kt](LessonRepository.kt) | StateFlow LessonLoadState, retryLoading, suspend addLesson/updateLesson; синхронных чтений нет |
+| [LessonLoadState.kt](LessonLoadState.kt) | Loading/Ready/Error с целым предыдущим снимком |
+| [LessonWriteResult.kt](LessonWriteResult.kt) | Success(lesson); Failure: NotReady, InvalidData, UnknownChild, NotFound, Conflict, StorageUnavailable |
+
+Модели — [domain.model](../model/PACKAGE.md), реализации — [data.repository](../../data/repository/PACKAGE.md). Клиенты — [дети](../../ui/screen/children/PACKAGE.md) и [расписание](../../ui/screen/schedule/PACKAGE.md). retryLoading занятий заменяет подписку из Ready/Error; в Loading игнорируется. Success подтверждает commit, а не последующую эмиссию.
+
+## Проверки
+
+
+
+Результаты и открытые критерии — [приёмка 010](../../../../../../../../openspec/verification/persist-lessons/validation.md).

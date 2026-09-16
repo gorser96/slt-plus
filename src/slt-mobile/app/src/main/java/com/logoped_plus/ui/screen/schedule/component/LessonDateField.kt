@@ -33,14 +33,15 @@ import java.time.format.DateTimeFormatter
 fun LessonDateField(
     date: LocalDate,
     onDateChange: (LocalDate) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     var showPicker by rememberSaveable { mutableStateOf(false) }
 
     val formattedDate = date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
     Box(modifier = modifier) {
         OutlinedTextField(
-            value = formattedDate,
+            enabled = enabled, value = formattedDate,
             onValueChange = {},
             readOnly = true,
             singleLine = true,
@@ -51,12 +52,12 @@ fun LessonDateField(
         // Overlay handles taps across the whole field without opening the keyboard.
         Box(
             modifier = Modifier.matchParentSize()
-                .clickable(role = Role.Button, onClickLabel = "Выбрать дату") { showPicker = true }
+                .clickable(enabled = enabled, role = Role.Button, onClickLabel = "Выбрать дату") { showPicker = true }
                 .semantics { contentDescription = "Дата: $formattedDate" }
         )
     }
 
-    if (showPicker) {
+    if (showPicker && enabled) {
         // Material DatePicker represents calendar dates as midnight UTC.
         val state = rememberDatePickerState(
             initialSelectedDateMillis = date.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
@@ -65,9 +66,9 @@ fun LessonDateField(
             onDismissRequest = { showPicker = false },
             confirmButton = {
                 TextButton(
-                    enabled = state.selectedDateMillis != null,
+                    enabled = enabled && state.selectedDateMillis != null,
                     onClick = {
-                        state.selectedDateMillis?.let {
+                        state.selectedDateMillis?.takeIf { enabled }?.let {
                             onDateChange(Instant.ofEpochMilli(it).atOffset(ZoneOffset.UTC).toLocalDate())
                         }
                         showPicker = false

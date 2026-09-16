@@ -19,6 +19,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,43 +43,27 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun App() {
+fun App(scheduleViewModel: ScheduleViewModel, childrenViewModel: ChildrenViewModel) {
     val context = LocalContext.current
-    var currentScreen by remember { mutableStateOf(AppScreen.Schedule) }
-    var showExitConfirmation by remember {
+    val scheduleState by scheduleViewModel.uiState.collectAsState()
+    var currentScreen by rememberSaveable { mutableStateOf(AppScreen.Schedule) }
+    var showExitConfirmation by rememberSaveable {
         mutableStateOf(false)
     }
 
     BackHandler(
         enabled = currentScreen != AppScreen.Schedule
     ) {
-        currentScreen = AppScreen.Schedule
+        if (!scheduleViewModel.uiState.value.saving) currentScreen = AppScreen.Schedule
     }
     BackHandler(
         enabled = currentScreen == AppScreen.Schedule
     ) {
-        showExitConfirmation = true
+        if (!scheduleViewModel.uiState.value.saving) showExitConfirmation = true
     }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val container = (context.applicationContext as LogopedPlusApplication).container
-    val lessonRepository = container.lessonRepository
-    val childRepository = container.childRepository
-
-    val scheduleViewModel: ScheduleViewModel = viewModel(
-        factory = ScheduleViewModelFactory(
-            lessonRepository = lessonRepository,
-            childRepository = childRepository
-        )
-    )
-
-    val childrenViewModel: ChildrenViewModel = viewModel(
-        factory = ChildrenViewModelFactory(
-            childRepository = childRepository
-        )
-    )
-
     val screenTitle = when (currentScreen) {
         AppScreen.Schedule -> "Расписание"
         AppScreen.Children -> "Дети"
@@ -85,15 +71,17 @@ fun App() {
     }
 
     ModalNavigationDrawer(
+        gesturesEnabled = !scheduleState.saving,
         drawerState = drawerState,
         drawerContent = {
             AppDrawer(
+                enabled = !scheduleState.saving,
                 currentScreen = currentScreen,
                 onScreenSelected = { screen ->
-                    currentScreen = screen
+                    if (!scheduleViewModel.uiState.value.saving) currentScreen = screen
 
                     scope.launch {
-                        drawerState.close()
+                        if (!scheduleViewModel.uiState.value.saving) drawerState.close()
                     }
                 }
             )
@@ -104,10 +92,10 @@ fun App() {
             topBar = {
                 TopAppBar(
                     navigationIcon = {
-                        IconButton(
+                        IconButton(enabled = !scheduleState.saving,
                             onClick = {
                                 scope.launch {
-                                    drawerState.open()
+                                    if (!scheduleViewModel.uiState.value.saving) drawerState.open()
                                 }
                             }
                         ) {
@@ -158,9 +146,12 @@ fun App() {
             },
             confirmButton = {
                 TextButton(
+                    enabled = !scheduleState.saving,
                     onClick = {
-                        showExitConfirmation = false
-                        (context as? Activity)?.finish()
+                        if (!scheduleViewModel.uiState.value.saving) {
+                            showExitConfirmation = false
+                            (context as? Activity)?.finish()
+                        }
                     }
                 ) {
                     Text("Выйти")
@@ -177,4 +168,27 @@ fun App() {
             }
         )
     }
+}
+
+@Composable
+fun App() {
+    val context = LocalContext.current
+    val container = (context.applicationContext as LogopedPlusApplication).container
+    val lessonRepository = container.lessonRepository
+    val childRepository = container.childRepository
+
+    val scheduleViewModel: ScheduleViewModel = viewModel(
+        factory = ScheduleViewModelFactory(
+            lessonRepository = lessonRepository,
+            childRepository = childRepository
+        )
+    )
+
+    val childrenViewModel: ChildrenViewModel = viewModel(
+        factory = ChildrenViewModelFactory(
+            childRepository = childRepository
+        )
+    )
+
+    App(scheduleViewModel, childrenViewModel)
 }

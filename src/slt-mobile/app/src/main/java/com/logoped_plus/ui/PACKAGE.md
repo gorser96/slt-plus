@@ -1,12 +1,16 @@
 # com.logoped_plus.ui
 
-Назначение: список разделов и боковое меню. [Общий указатель](../../../../../../../PACKAGES.md).
+Боковое меню и идентификаторы разделов. [Общий указатель](../../../../../../../PACKAGES.md).
 
-| Файл / символ | Ответственность |
+| Файл | Назначение |
 |---|---|
-| [AppScreen.kt](AppScreen.kt) — `AppScreen` | Enum разделов `Schedule`, `Children`, `Settings` |
-| [AppDrawer.kt](AppDrawer.kt) — `AppDrawer` | Пункты меню, выделение текущего раздела, callback `onScreenSelected` |
+| [AppDrawer.kt](AppDrawer.kt) | Выделение раздела, enabled, семантика disabled и guard callback |
+| [AppScreen.kt](AppScreen.kt) | Schedule, Children, Settings |
 
-Текущий раздел, заголовок, закрытие drawer и показ [экранов](screen/PACKAGE.md) находятся в [App.kt](../App.kt), см. [карту корневого пакета](../PACKAGE.md). Здесь нет NavController и графа Navigation Compose.
+Навигацией владеет [App](../PACKAGE.md). Во время Saving недоступны открытые пункты drawer; App отдельно проверяет актуальный статус, блокирует кнопку меню и жесты. Navigation Compose не внедрён.
 
-При добавлении раздела проверь enum, пункты drawer и ветки `when` в `App`. Оформление задаёт [ui.theme](theme/PACKAGE.md). Специализированных тестов меню пока нет.
+## Проверки
+
+
+
+Результаты и открытые критерии — [приёмка 010](../../../../../../../openspec/verification/persist-lessons/validation.md).

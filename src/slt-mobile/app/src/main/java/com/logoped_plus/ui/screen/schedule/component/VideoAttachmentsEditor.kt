@@ -11,17 +11,21 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 
 @Composable
-fun VideoAttachmentsEditor(videoUris: List<String>, onChange: (List<String>) -> Unit) {
+fun VideoAttachmentsEditor(videoUris: List<String>, onChange: (List<String>) -> Unit, enabled: Boolean = true, sessionId: String = "") {
     var pendingRemoval by rememberSaveable { mutableStateOf<String?>(null) }
     var videoError by rememberSaveable { mutableStateOf<String?>(null) }
+    var launchedSession by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        if (!enabled || launchedSession != sessionId) return@rememberLauncherForActivityResult
+        launchedSession = null
         val addedUris = mutableListOf<String>()
         var failedCount = 0
         uris.distinct().forEach { uri ->
@@ -43,16 +47,18 @@ fun VideoAttachmentsEditor(videoUris: List<String>, onChange: (List<String>) -> 
     Text("Видео", style = MaterialTheme.typography.titleMedium)
     videoUris.forEach { uri ->
         key(uri) {
-            VideoAttachmentLink(uri)
-            TextButton(onClick = { pendingRemoval = uri }) {
+            VideoAttachmentLink(uri, enabled = enabled)
+            TextButton(enabled = enabled, onClick = { pendingRemoval = uri }) {
                 Text("Открепить")
             }
         }
     }
     TextButton(
+        enabled = enabled,
         onClick = {
             videoError = null
             try {
+                launchedSession = sessionId
                 videoPicker.launch(arrayOf("video/*"))
             } catch (_: ActivityNotFoundException) {
                 videoError = "На устройстве не найдено приложение для выбора видео."
@@ -62,19 +68,19 @@ fun VideoAttachmentsEditor(videoUris: List<String>, onChange: (List<String>) -> 
     videoError?.let { message ->
         Text(message, color = MaterialTheme.colorScheme.error)
     }
-    pendingRemoval?.let { uri ->
+    pendingRemoval?.takeIf { enabled }?.let { uri ->
         AlertDialog(
             onDismissRequest = { pendingRemoval = null },
             title = { Text("Открепить видео?") },
             text = { Text("Видео будет откреплено от занятия после сохранения. Файл останется на устройстве.") },
             confirmButton = {
-                TextButton(onClick = {
-                    onChange(videoUris - uri)
+                TextButton(enabled = enabled, onClick = {
+                    if (enabled) onChange(videoUris - uri)
                     pendingRemoval = null
                 }) { Text("Открепить") }
             },
             dismissButton = {
-                TextButton(onClick = { pendingRemoval = null }) { Text("Отмена") }
+                TextButton(enabled = enabled, onClick = { pendingRemoval = null }) { Text("Отмена") }
             }
         )
     }

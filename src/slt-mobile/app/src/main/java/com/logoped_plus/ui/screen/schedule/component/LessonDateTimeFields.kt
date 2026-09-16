@@ -27,7 +27,8 @@ fun LessonDateTimeFields(
     hour: String,
     onHourChange: (String) -> Unit,
     minute: String,
-    onMinuteChange: (String) -> Unit
+    onMinuteChange: (String) -> Unit,
+    enabled: Boolean = true
 ) {
     val focusManager = LocalFocusManager.current
     val hourValid = hour.toIntOrNull() in 0..23
@@ -39,15 +40,15 @@ fun LessonDateTimeFields(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.Bottom
         ) {
-            LessonDateField(date, onDateChange, Modifier.weight(1f))
+            LessonDateField(date, onDateChange, Modifier.weight(1f), enabled)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedTextField(
-                    value = hour,
+                    enabled = enabled, value = hour,
                     onValueChange = { value ->
-                        if (value.length <= 2 && value.all { it in '0'..'9' }) onHourChange(value)
+                        if (enabled && value.length <= 2 && value.all { it in '0'..'9' }) onHourChange(value)
                     },
                     modifier = Modifier.width(64.dp),
                     label = { Text("Часы") },
@@ -58,9 +59,9 @@ fun LessonDateTimeFields(
                 )
                 Text(":")
                 OutlinedTextField(
-                    value = minute,
+                    enabled = enabled, value = minute,
                     onValueChange = { value ->
-                        if (value.length <= 2 && value.all { it in '0'..'9' }) onMinuteChange(value)
+                        if (enabled && value.length <= 2 && value.all { it in '0'..'9' }) onMinuteChange(value)
                     },
                     modifier = Modifier.width(64.dp),
                     label = { Text("Мин") },

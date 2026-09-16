@@ -1,17 +1,12 @@
 package com.logoped_plus.domain.repository
 
 import com.logoped_plus.domain.model.Lesson
-import java.time.LocalDate
+import kotlinx.coroutines.flow.StateFlow
 
 interface LessonRepository {
 
-    fun getLessons(): List<Lesson>
-
-    fun getLessonsByDate(date: LocalDate): List<Lesson>
-
-    fun getLessonById(id: String): Lesson?
-
-    fun addLesson(lesson: Lesson)
-
-    fun updateLesson(lesson: Lesson)
+    val state: StateFlow<LessonLoadState>
+    fun retryLoading()
+    suspend fun addLesson(lesson: Lesson): LessonWriteResult
+    suspend fun updateLesson(lesson: Lesson): LessonWriteResult
 }
