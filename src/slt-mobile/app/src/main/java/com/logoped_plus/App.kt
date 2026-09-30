@@ -35,6 +35,8 @@ import com.logoped_plus.ui.AppScreen
 import com.logoped_plus.ui.screen.ChildrenScreen
 import com.logoped_plus.ui.screen.ScheduleScreen
 import com.logoped_plus.ui.screen.SettingsScreen
+import com.logoped_plus.ui.screen.SettingsViewModel
+import com.logoped_plus.ui.screen.SettingsViewModelFactory
 import com.logoped_plus.ui.screen.children.ChildrenViewModel
 import com.logoped_plus.ui.screen.children.ChildrenViewModelFactory
 import com.logoped_plus.ui.screen.schedule.ScheduleViewModel
@@ -43,7 +45,11 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun App(scheduleViewModel: ScheduleViewModel, childrenViewModel: ChildrenViewModel) {
+fun App(
+    scheduleViewModel: ScheduleViewModel,
+    childrenViewModel: ChildrenViewModel,
+    settingsViewModel: SettingsViewModel
+) {
     val context = LocalContext.current
     val scheduleState by scheduleViewModel.uiState.collectAsState()
     var currentScreen by rememberSaveable { mutableStateOf(AppScreen.Schedule) }
@@ -127,7 +133,9 @@ fun App(scheduleViewModel: ScheduleViewModel, childrenViewModel: ChildrenViewMod
                         viewModel = childrenViewModel
                     )
 
-                    AppScreen.Settings -> SettingsScreen()
+                    AppScreen.Settings -> SettingsScreen(
+                        viewModel = settingsViewModel
+                    )
                 }
             }
         }
@@ -176,11 +184,13 @@ fun App() {
     val container = (context.applicationContext as LogopedPlusApplication).container
     val lessonRepository = container.lessonRepository
     val childRepository = container.childRepository
+    val settings = container.settings
 
     val scheduleViewModel: ScheduleViewModel = viewModel(
         factory = ScheduleViewModelFactory(
             lessonRepository = lessonRepository,
-            childRepository = childRepository
+            childRepository = childRepository,
+            settings = settings
         )
     )
 
@@ -190,5 +200,11 @@ fun App() {
         )
     )
 
-    App(scheduleViewModel, childrenViewModel)
+    val settingsViewModel: SettingsViewModel = viewModel(
+        factory = SettingsViewModelFactory(
+            settings = settings
+        )
+    )
+
+    App(scheduleViewModel, childrenViewModel, settingsViewModel)
 }

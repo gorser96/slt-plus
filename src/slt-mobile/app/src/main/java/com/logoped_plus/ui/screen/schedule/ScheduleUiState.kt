@@ -23,7 +23,8 @@ data class ScheduleUiState(
     val displayedMonth: YearMonth,
     val displayedWeekStart: LocalDate,
     val lessons: List<LessonUiModel> = emptyList(),
-    val children: List<Child> = emptyList()
+    val children: List<Child> = emptyList(),
+    val weekendHidden: Boolean = false
 ) {
     val saving: Boolean get() = editor?.saving == true
     val canSave: Boolean get() = !saving && !awaitingSnapshot &&

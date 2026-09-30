@@ -148,6 +148,7 @@ private fun ScheduleBody(
                     modifier = Modifier.weight(1f),
                     weekStart = uiState.displayedWeekStart,
                     lessons = uiState.lessons,
+                    weekendHidden = uiState.weekendHidden,
                     onPreviousWeek = {
                         onAction(ScheduleAction.PreviousWeek)
                     },

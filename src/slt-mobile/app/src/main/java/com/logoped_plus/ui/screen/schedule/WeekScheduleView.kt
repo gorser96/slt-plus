@@ -33,10 +33,12 @@ fun WeekScheduleView(
     onNextWeek: () -> Unit,
     onLessonClick: (LessonUiModel) -> Unit,
     onEmptyHourDoubleClick: (LocalDateTime) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    weekendHidden: Boolean = false
 ) {
-    val timelines = remember(weekStart, lessons) {
-        List(7) { buildWeekDayTimeline(weekStart.plusDays(it.toLong()), lessons) }
+    val dayCount = if (weekendHidden) 5 else 7
+    val timelines = remember(weekStart, lessons, dayCount) {
+        List(dayCount) { buildWeekDayTimeline(weekStart.plusDays(it.toLong()), lessons) }
     }
     var extraLessons by remember(weekStart, lessons) {
         mutableStateOf<List<LessonUiModel>>(emptyList())
@@ -58,7 +60,7 @@ fun WeekScheduleView(
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth()) {
             Spacer(Modifier.width(44.dp))
-            repeat(7) { index ->
+            repeat(dayCount) { index ->
                 val date = weekStart.plusDays(index.toLong())
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("ru"))

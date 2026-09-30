@@ -4,14 +4,14 @@
 
 | Файл | Назначение |
 |---|---|
-| [ScheduleViewModel.kt](ScheduleViewModel.kt) | Владелец черновиков; объединение снимков по ID, Saving, sessionId, согласование commit/Flow |
-| [ScheduleViewModelFactory.kt](ScheduleViewModelFactory.kt) | Фабрика с двумя repository |
+| [ScheduleViewModel.kt](ScheduleViewModel.kt) | Владелец черновиков; объединение снимков по ID, Saving, sessionId, согласование commit/Flow; подписка на настройку «Скрывать выходные» |
+| [ScheduleViewModelFactory.kt](ScheduleViewModelFactory.kt) | Фабрика с двумя repository и настройками |
 | [ScheduleAction.kt](ScheduleAction.kt) | Начало/отмена, изменения полей с sessionId, ConfirmLesson, повтор чтения и календарные действия |
 | [ScheduleUiState.kt](ScheduleUiState.kt) | Два состояния загрузки, editor/detailsDraft, awaitingSnapshot, календарь и UI-модели |
 | [LessonEditorState.kt](LessonEditorState.kt) | CREATE/DETAILS/EDIT, UUID, sessionId, raw поля, исходный агрегат, Idle/Saving/Failure |
 | [ScheduleModels.kt](ScheduleModels.kt) | MONTH/WEEK, начало недели в понедельник |
 | [MonthScheduleView.kt](MonthScheduleView.kt) | Сетка месяца, выбранный день, стабильная сортировка по времени |
-| [WeekScheduleView.kt](WeekScheduleView.kt) | Недельная сетка и диалог дополнительных занятий |
+| [WeekScheduleView.kt](WeekScheduleView.kt) | Недельная сетка (семь столбцов, при скрытых выходных — пять) и диалог дополнительных занятий |
 | [WeekTimeline.kt](WeekTimeline.kt) | Сортировка, кластеризация пересечений, столбики, группы скрытых занятий, полночь и свободные часы |
 | [ScheduleComponents.kt](ScheduleComponents.kt) | Карточки месяца и недели |
 | [LessonCreateView.kt](LessonCreateView.kt) | Управляемая форма создания и общая LessonForm |
@@ -26,10 +26,10 @@ Saving блокирует изменения и уход. После commit по
 
 WeekTimeline сортирует занятия дня по времени начала и группирует строгие пересечения интервалов: первые два занятия группы — столбики по половине ширины дня, остальные скрыты за одной кнопкой «ещё N» на группу у верхнего края первого скрытого занятия. 90 минут занимают 1,5 часа; полночь разбивает занятие по дням. Двойное нажатие свободного часа передаёт дату/время в StartCreatingLesson. Сетка первоначально показывает 08:00–13:00 и прокручивается по 24 часам. Расчёт не изменён функцией 010.
 
+Настройка «Скрывать выходные» ([data.preferences](../../../data/preferences/PACKAGE.md)): подписка в `init` ScheduleViewModel, флаг `weekendHidden` в ScheduleUiState; WeekScheduleView строит пять столбцов (пн–пт) вместо семи, занятость скрытых дней не рендерится, часть ночного занятия в скрытый день не показывается, подпись диапазона недели — вся неделя.
+
 ## Проверки
 
-- [FakeLessonRepository.kt](../../../../../../../test/java/com/logoped_plus/ui/screen/schedule/FakeLessonRepository.kt) — test.
-- [ScheduleViewModelTest.kt](../../../../../../../test/java/com/logoped_plus/ui/screen/schedule/ScheduleViewModelTest.kt) — test.
 - [WeekTimelineTest.kt](../../../../../../../test/java/com/logoped_plus/ui/screen/schedule/WeekTimelineTest.kt) — test.
 
-Результаты и открытые критерии — [приёмка 010](../../../../../../../../../openspec/verification/persist-lessons/validation.md).
+Скрытые выходные проверялись вручную на эмуляторе (сетка 5/7 столбцов, ночное занятие, сохранение после перезапуска).

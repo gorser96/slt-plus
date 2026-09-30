@@ -2,6 +2,7 @@ package com.logoped_plus.ui.screen.schedule
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.logoped_plus.data.preferences.SettingsStore
 import com.logoped_plus.domain.model.Lesson
 import com.logoped_plus.domain.repository.*
 import com.logoped_plus.ui.screen.schedule.model.LessonUiModel
@@ -13,13 +14,17 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.util.UUID
 
-class ScheduleViewModel(private val lessonRepository: LessonRepository, private val childRepository: ChildRepository) : ViewModel() {
+class ScheduleViewModel(
+    private val lessonRepository: LessonRepository,
+    private val childRepository: ChildRepository,
+    private val settings: SettingsStore
+) : ViewModel() {
     private val today = LocalDate.now()
     private var confirmed: Lesson? = null
     private val mutableState = MutableStateFlow(ScheduleUiState(
         selectedDate = today, displayedMonth = YearMonth.from(today), displayedWeekStart = today.startOfWeek(),
         childLoadState = childRepository.state.value, lessonLoadState = lessonRepository.state.value,
-        children = childRepository.state.value.children
+        children = childRepository.state.value.children, weekendHidden = settings.hideWeekend.value
     ))
     val uiState = mutableState.asStateFlow()
 
@@ -28,6 +33,9 @@ class ScheduleViewModel(private val lessonRepository: LessonRepository, private 
         viewModelScope.launch {
             combine(childRepository.state, lessonRepository.state) { _, _ -> Unit }
                 .collect { refresh() }
+        }
+        viewModelScope.launch {
+            settings.hideWeekend.collect { hidden -> mutableState.value = mutableState.value.copy(weekendHidden = hidden) }
         }
     }
 
