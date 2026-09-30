@@ -12,13 +12,10 @@
 | [LessonParticipantEntity.kt](LessonParticipantEntity.kt) | Уникальные упорядоченные childId; FK children RESTRICT, lessons CASCADE |
 | [LessonVideoEntity.kt](LessonVideoEntity.kt) | Уникальные URI с ordinal; FK lessons CASCADE |
 | [LessonWithRelations.kt](LessonWithRelations.kt) | Целый агрегат, преобразования Lesson и сортировка связей по ordinal |
-| [LessonDao.kt](LessonDao.kt) | Транзакционное наблюдение; addOnce по UUID+агрегату, updateExisting без смены position; проверка детей и атомарная запись связей |
+| [LessonDao.kt](LessonDao.kt) | Транзакционное наблюдение; addOnce по UUID+агрегату, updateExisting без смены position; проверка детей и атомарная запись связей; транзакционное удаление deleteExisting (NotFound, иначе Success с удалённым занятием, связи — по CASCADE) |
 
-Потребитель — [репозитории](../repository/PACKAGE.md). Время не переводится в UTC. REPLACE родителя не используется. Тестовый LegacyChildrenDatabase воспроизводит SQL v1 из исходной ревизии: пользователь удалил экспорт 1.json; MigrationTestHelper валидирует экспорт v2.
+Потребитель — [репозитории](../repository/PACKAGE.md). Время не переводится в UTC. REPLACE родителя не используется.
 
 ## Проверки
 
-- [LegacyChildrenDatabase.kt](../../../../../../androidTest/java/com/logoped_plus/data/local/LegacyChildrenDatabase.kt) — androidTest.
-- [LessonMigrationTest.kt](../../../../../../androidTest/java/com/logoped_plus/data/local/LessonMigrationTest.kt) — androidTest.
-
-Результаты и открытые критерии — [приёмка 010](../../../../../../../../openspec/verification/persist-lessons/validation.md).
+На диске тестов для пакета нет.

@@ -7,7 +7,7 @@
 | [ChildRepository.kt](ChildRepository.kt) | StateFlow ChildLoadState, retryLoading, suspend addChild/updateChild |
 | [ChildLoadState.kt](ChildLoadState.kt) | Loading/Ready/Error с последним списком детей |
 | [ChildWriteResult.kt](ChildWriteResult.kt) | Success после commit либо типизированный отказ |
-| [LessonRepository.kt](LessonRepository.kt) | StateFlow LessonLoadState, retryLoading, suspend addLesson/updateLesson; синхронных чтений нет |
+| [LessonRepository.kt](LessonRepository.kt) | StateFlow LessonLoadState, retryLoading, suspend addLesson/updateLesson/deleteLesson; синхронных чтений нет |
 | [LessonLoadState.kt](LessonLoadState.kt) | Loading/Ready/Error с целым предыдущим снимком |
 | [LessonWriteResult.kt](LessonWriteResult.kt) | Success(lesson); Failure: NotReady, InvalidData, UnknownChild, NotFound, Conflict, StorageUnavailable |
 
@@ -15,6 +15,4 @@
 
 ## Проверки
 
-
-
-Результаты и открытые критерии — [приёмка 010](../../../../../../../../openspec/verification/persist-lessons/validation.md).
+На диске тестов для пакета нет.

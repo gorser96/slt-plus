@@ -80,8 +80,9 @@ private fun ScheduleBody(
                 LessonEditorMode.CREATE -> LessonCreateView(editor, uiState.children, childrenReady, uiState.canSave, onAction)
                 LessonEditorMode.EDIT -> LessonEditView(editor, uiState.children, childrenReady, uiState.canSave, onAction)
                 LessonEditorMode.DETAILS -> selectedLesson?.let {
-                    LessonDetailsView(canSave = uiState.canSave, editor = editor, uiModel = it,
+                    LessonDetailsView(canSave = uiState.canSave, canDelete = uiState.canDelete, editor = editor, uiModel = it,
                         onBack = { onAction(ScheduleAction.CloseLesson) }, onEdit = { onAction(ScheduleAction.StartEditingLesson) },
+                        onDelete = { onAction(ScheduleAction.DeleteLesson(editor.sessionId)) },
                         comment = editor.comment, videoUris = editor.videoUris,
                         onCommentChange = { value -> onAction(ScheduleAction.ChangeText(editor.sessionId, LessonTextField.COMMENT, value)) },
                         onVideosChange = { uris -> onAction(ScheduleAction.ChangeVideos(editor.sessionId, uris)) },

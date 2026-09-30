@@ -47,10 +47,18 @@ class ScheduleViewModel(
             loaded.lessons.map { if (it.id == overlay.id) overlay else it } else loaded.lessons + overlay
         val state = mutableState.value
         val models = rows.map { toUiModel(it, children) }
+        // A deleted lesson leaves no row, so an open details/edit on it has nothing to show.
+        val closed = state.editor != null && state.editor?.mode != LessonEditorMode.CREATE &&
+            rows.none { it.id == state.editor?.lessonId }
+        val editor = if (closed) null else state.editor
         // A missing row must not discard a draft. Names can change independently of its raw input.
-        val selected = state.editor?.takeIf { it.mode != LessonEditorMode.CREATE }?.original?.let { toUiModel(it, children) }
+        val selected = editor?.takeIf { it.mode != LessonEditorMode.CREATE }?.original?.let { toUiModel(it, children) }
         mutableState.value = state.copy(childLoadState = children, lessonLoadState = loaded, children = children.children,
-            lessons = models, selectedLesson = selected, awaitingSnapshot = confirmed != null)
+            lessons = models, editor = editor, detailsDraft = if (closed) null else state.detailsDraft,
+            selectedLesson = selected, isCreatingLesson = editor?.mode == LessonEditorMode.CREATE,
+            isEditingLesson = editor?.mode == LessonEditorMode.EDIT,
+            creationDateTime = if (editor?.mode == LessonEditorMode.CREATE) LocalDate.ofEpochDay(editor.epochDay).atStartOfDay() else null,
+            awaitingSnapshot = confirmed != null)
     }
 
     fun onAction(action: ScheduleAction) {
@@ -89,6 +97,7 @@ class ScheduleViewModel(
             is ScheduleAction.ChangeChildren -> change(action.sessionId) { if (it.mode == LessonEditorMode.DETAILS) it else it.copy(childIds = action.ids.distinct()) }
             is ScheduleAction.ChangeVideos -> change(action.sessionId) { if (it.mode == LessonEditorMode.CREATE) it else it.copy(videoUris = action.uris.distinct()) }
             is ScheduleAction.ConfirmLesson -> confirm(action.sessionId)
+            is ScheduleAction.DeleteLesson -> delete(action.sessionId)
             is ScheduleAction.SelectDate -> mutableState.value = state.copy(selectedDate = action.date)
             is ScheduleAction.ChangeViewMode -> mutableState.value = state.copy(viewMode = action.mode,
                 displayedMonth = YearMonth.from(state.selectedDate), displayedWeekStart = state.selectedDate.startOfWeek())
@@ -130,6 +139,21 @@ class ScheduleViewModel(
                     confirmed = result.lesson
                     setEditor(if (editor.mode == LessonEditorMode.CREATE) null else LessonEditorState.from(result.lesson))
                 }
+            }
+        }
+    }
+
+    private fun delete(sessionId: String) {
+        refresh()
+        val state = mutableState.value
+        val editor = state.editor?.takeIf { it.sessionId == sessionId } ?: return
+        if (!state.canDelete) return
+        setEditor(editor.copy(status = LessonEditorStatus.Saving), keepDetails = true)
+        confirmed = null
+        viewModelScope.launch {
+            when (val result = lessonRepository.deleteLesson(editor.lessonId)) {
+                is LessonWriteResult.Failure -> setEditor(editor.copy(status = LessonEditorStatus.Failure(result.reason)), keepDetails = true)
+                is LessonWriteResult.Success -> setEditor(null)
             }
         }
     }

@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,6 +24,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -33,16 +39,19 @@ import java.util.Locale
 @Composable
 fun LessonDetailsView(
     canSave: Boolean,
+    canDelete: Boolean,
     editor: LessonEditorState,
     uiModel: LessonUiModel,
     onBack: () -> Unit,
     onEdit: () -> Unit,
+    onDelete: () -> Unit,
     comment: String,
     videoUris: List<String>,
     onCommentChange: (String) -> Unit,
     onVideosChange: (List<String>) -> Unit,
     onSave: () -> Unit
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -65,6 +74,9 @@ fun LessonDetailsView(
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.weight(1f)
             )
+            IconButton(enabled = canDelete && !editor.saving, onClick = { showDeleteDialog = true }) {
+                Icon(Icons.Default.Delete, contentDescription = "Удалить занятие")
+            }
             IconButton(enabled = !editor.saving, onClick = onEdit) {
                 Icon(Icons.Default.Edit, contentDescription = "Редактировать занятие")
             }
@@ -126,6 +138,20 @@ fun LessonDetailsView(
                 Text("Сохранить")
             }
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Удалить занятие?") },
+            text = { Text("Запись, участники, комментарий и привязки видео будут удалены. Файлы видео на устройстве не удаляются.") },
+            confirmButton = {
+                TextButton(onClick = { showDeleteDialog = false; onDelete() }) { Text("Удалить") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Отмена") }
+            }
+        )
     }
 }
 

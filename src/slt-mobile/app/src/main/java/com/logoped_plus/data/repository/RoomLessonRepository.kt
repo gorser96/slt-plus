@@ -41,6 +41,17 @@ class RoomLessonRepository(private val dao: LessonDao, private val children: Chi
 
     override suspend fun addLesson(lesson: Lesson) = write(lesson) { dao.addOnce(it) }
     override suspend fun updateLesson(lesson: Lesson) = write(lesson) { dao.updateExisting(it) }
+    override suspend fun deleteLesson(id: String): LessonWriteResult {
+        if (state.value !is LessonLoadState.Ready || children.state.value !is ChildLoadState.Ready)
+            return LessonWriteResult.Failure(LessonWriteResult.Reason.NotReady)
+        return try {
+            dao.deleteExisting(id)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            LessonWriteResult.Failure(LessonWriteResult.Reason.StorageUnavailable)
+        }
+    }
 
     private suspend fun write(lesson: Lesson, action: suspend (Lesson) -> LessonWriteResult): LessonWriteResult {
         invalidReason(lesson)?.let { return LessonWriteResult.Failure(it) }

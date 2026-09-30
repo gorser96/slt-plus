@@ -33,4 +33,7 @@ data class ScheduleUiState(
             lesson.childIds.all { id -> children.any { it.id == id } } &&
                 (editor.mode == LessonEditorMode.CREATE || lessonLoadState.lessons.any { it.id == lesson.id })
         } == true
+    val canDelete: Boolean get() = !saving && !awaitingSnapshot &&
+        childLoadState is ChildLoadState.Ready && lessonLoadState is LessonLoadState.Ready &&
+        editor?.let { e -> e.mode != LessonEditorMode.CREATE && lessonLoadState.lessons.any { it.id == e.lessonId } } == true
 }

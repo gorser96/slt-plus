@@ -30,6 +30,8 @@ abstract class LessonDao {
     abstract suspend fun clearParticipants(id: String)
     @Query("DELETE FROM lesson_videos WHERE lessonId = :id")
     abstract suspend fun clearVideos(id: String)
+    @Query("DELETE FROM lessons WHERE id = :id")
+    abstract suspend fun deleteLesson(id: String)
 
     @Transaction
     open suspend fun addOnce(lesson: Lesson): LessonWriteResult {
@@ -60,6 +62,13 @@ abstract class LessonDao {
         clearVideos(lesson.id)
         insertRelations(lesson)
         return LessonWriteResult.Success(lesson)
+    }
+
+    @Transaction
+    open suspend fun deleteExisting(id: String): LessonWriteResult {
+        val existing = find(id) ?: return LessonWriteResult.Failure(LessonWriteResult.Reason.NotFound)
+        deleteLesson(id)
+        return LessonWriteResult.Success(existing.toDomain())
     }
 }
 

@@ -9,4 +9,5 @@ interface LessonRepository {
     fun retryLoading()
     suspend fun addLesson(lesson: Lesson): LessonWriteResult
     suspend fun updateLesson(lesson: Lesson): LessonWriteResult
+    suspend fun deleteLesson(id: String): LessonWriteResult
 }
