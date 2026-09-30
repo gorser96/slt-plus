@@ -87,7 +87,8 @@ fun WeekScheduleView(
                 }
                 timelines.forEachIndexed { index, timeline ->
                     val date = weekStart.plusDays(index.toLong())
-                    Box(Modifier.weight(1f).height(hourHeight * 24).clipToBounds()) {
+                    BoxWithConstraints(Modifier.weight(1f).height(hourHeight * 24).clipToBounds()) {
+                        val dayWidth = maxWidth
                         Column {
                             repeat(24) { hour ->
                                 val emptyHourModifier = if (timeline.isHourEmpty(hour)) {
@@ -103,32 +104,35 @@ fun WeekScheduleView(
                             }
                         }
                         timeline.visibleSpans.forEach { span ->
+                            val laneModifier = when (span.lane) {
+                                0 -> Modifier.width(dayWidth / 2)
+                                1 -> Modifier.offset(x = dayWidth / 2).width(dayWidth / 2)
+                                else -> Modifier.fillMaxWidth()
+                            }
                             WeekLessonItem(
                                 uiModel = span.lesson,
                                 onClick = { onLessonClick(span.lesson) },
                                 modifier = Modifier
                                     .offset(y = hourHeight * (span.startMinute / 60f))
+                                    .then(laneModifier)
                                     .height(hourHeight * ((span.endMinute - span.startMinute) / 60f))
                                     .padding(horizontal = 2.dp)
                                     .clipToBounds()
                             )
                         }
-                        repeat(24) { hour ->
-                            val hidden = timeline.extraSpans.filter { it.occupiesHour(hour) }
-                            if (hidden.isNotEmpty()) {
-                                Text(
-                                    text = "ещё ${hidden.size}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 1,
-                                    modifier = Modifier
-                                        .offset(y = hourHeight * (hour + 1) - 22.dp)
-                                        .fillMaxWidth().height(22.dp)
-                                        .background(MaterialTheme.colorScheme.secondaryContainer)
-                                        .clickable { extraLessons = hidden.map { it.lesson } }
-                                        .padding(vertical = 3.dp)
-                                )
-                            }
+                        timeline.extraGroups.forEach { group ->
+                            Text(
+                                text = "ещё ${group.spans.size}",
+                                style = MaterialTheme.typography.labelSmall,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                modifier = Modifier
+                                    .offset(y = hourHeight * (group.topMinute / 60f))
+                                    .fillMaxWidth().height(22.dp)
+                                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                                    .clickable { extraLessons = group.spans.map { it.lesson } }
+                                    .padding(vertical = 3.dp)
+                            )
                         }
                     }
                 }
