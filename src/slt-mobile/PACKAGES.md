@@ -1,6 +1,6 @@
 # Карта пакетов «Логопед+»
 
-Android-приложение на Kotlin и Jetpack Compose, один Gradle-модуль `app`. Ниже перечислены все 13 пакетов, объявленных в исходниках. `data`, `domain` и другие промежуточные каталоги без собственных классов не являются отдельными пунктами. Тестовые source sets используют те же имена пакетов и описаны в соответствующих картах.
+Android-приложение на Kotlin и Jetpack Compose, один Gradle-модуль `app`. Ниже перечислены все 15 пакетов, объявленных в исходниках. `data`, `domain` и другие промежуточные каталоги без собственных классов не являются отдельными пунктами. Тестовые source sets используют те же имена пакетов и описаны в соответствующих картах.
 
 ## Выбор пакета по задаче
 
@@ -8,10 +8,12 @@ Android-приложение на Kotlin и Jetpack Compose, один Gradle-м�
 |---|---|
 | [com.logoped_plus](app/src/main/java/com/logoped_plus/PACKAGE.md) | Запуск, создание зависимостей, переключение экранов, системная кнопка «Назад», выход |
 | [com.logoped_plus.data.local](app/src/main/java/com/logoped_plus/data/local/PACKAGE.md) | Room-схема, DAO, файловая БД детей |
+| [com.logoped_plus.data.media](app/src/main/java/com/logoped_plus/data/media/PACKAGE.md) | Видео устройства через MediaStore (реализация `VideoLibrary`) |
 | [com.logoped_plus.data.preferences](app/src/main/java/com/logoped_plus/data/preferences/PACKAGE.md) | Настройки приложения в SharedPreferences: «Скрывать выходные» |
 | [com.logoped_plus.data.repository](app/src/main/java/com/logoped_plus/data/repository/PACKAGE.md) | Room-хранение детей и занятий, проверки repository |
 | [com.logoped_plus.domain.model](app/src/main/java/com/logoped_plus/domain/model/PACKAGE.md) | Структуры ребёнка, занятия, видеовложения |
-| [com.logoped_plus.domain.repository](app/src/main/java/com/logoped_plus/domain/repository/PACKAGE.md) | Контракты доступа к детям и занятиям |
+| [com.logoped_plus.domain.repository](app/src/main/java/com/logoped_plus/domain/repository/PACKAGE.md) | Контракты доступа к детям, занятиям и видео устройства |
+| [com.logoped_plus.domain.usecase](app/src/main/java/com/logoped_plus/domain/usecase/PACKAGE.md) | Use case выбора видео по интервалу занятия |
 | [com.logoped_plus.ui](app/src/main/java/com/logoped_plus/ui/PACKAGE.md) | Боковое меню и список разделов |
 | [com.logoped_plus.ui.screen](app/src/main/java/com/logoped_plus/ui/screen/PACKAGE.md) | Экран детей, переключение представлений расписания, черновики, экран настроек |
 | [com.logoped_plus.ui.screen.children](app/src/main/java/com/logoped_plus/ui/screen/children/PACKAGE.md) | Состояние списка детей, добавление, переименование, проверка имени |
@@ -26,6 +28,7 @@ Android-приложение на Kotlin и Jetpack Compose, один Gradle-м�
 - Изменение занятия: `ScheduleScreen` → форма из `ui.screen.schedule` → `ScheduleAction` → `ScheduleViewModel` → `LessonRepository` → `RoomLessonRepository` → обновлённый `ScheduleUiState`.
 - Изменение имени ребёнка: `ChildrenScreen` → `ChildrenViewModel` → `ChildRepository.state` → обновление списка детей и подписанного `ScheduleViewModel` → новые имена в `LessonUiModel`.
 - Видеовложение: `VideoAttachmentsEditor` → черновик формы/экрана → `UpdateLesson` → `VideoAttachment`. Открытие URI выполняет `VideoAttachmentLink`.
+- Автоподкрепление видео: `VideoAttachmentsEditor` (кнопка, разрешение `READ_MEDIA_VIDEO`) → `AutoAttachLessonVideos` → `ScheduleViewModel` → `FindLessonVideosUseCase` → `MediaStoreVideoScanner` → черновик через `ChangeVideos`.
 - Настройка «Скрывать выходные»: `SettingsScreen` → `SettingsViewModel` → `SettingsStore` → SharedPreferences; `ScheduleViewModel` подписывается на store и передаёт флаг в `WeekScheduleView` (пять/семь столбцов).
 
 ## Вне пакетов

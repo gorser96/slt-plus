@@ -24,7 +24,9 @@ data class ScheduleUiState(
     val displayedWeekStart: LocalDate,
     val lessons: List<LessonUiModel> = emptyList(),
     val children: List<Child> = emptyList(),
-    val weekendHidden: Boolean = false
+    val weekendHidden: Boolean = false,
+    val videoScanInProgress: Boolean = false,
+    val videoScanMessage: String? = null
 ) {
     val saving: Boolean get() = editor?.saving == true
     val canSave: Boolean get() = !saving && !awaitingSnapshot &&

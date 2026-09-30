@@ -7,6 +7,7 @@
 | [Child.kt](Child.kt) — `Child` | Строковые `id` и `name` |
 | [Lesson.kt](Lesson.kt) — `Lesson` | UUID по умолчанию, `childIds`, `scheduledAt: LocalDateTime`, длительность в минутах, комментарий, список видео |
 | [VideoAttachment.kt](VideoAttachment.kt) — `VideoAttachment` | URI видео в виде строки; сам файл здесь не хранится |
+| [DeviceVideo.kt](DeviceVideo.kt) — `DeviceVideo` | URI видео на устройстве, имя, время создания в эпохе (мс) |
 
 Используется [контрактами repository](../repository/PACKAGE.md), [хранением](../../data/repository/PACKAGE.md) и ViewModel. Связь занятия с детьми задаётся ID; имена вычисляются в `ScheduleViewModel.toUiModel`, см. [расписание](../../ui/screen/schedule/PACKAGE.md) и [LessonUiModel](../../ui/screen/schedule/model/PACKAGE.md).
 

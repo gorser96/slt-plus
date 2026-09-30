@@ -17,7 +17,15 @@ fun LessonCreateView(editor: LessonEditorState, children: List<Child>, childrenR
 }
 
 @Composable
-internal fun LessonForm(editor: LessonEditorState, children: List<Child>, childrenReady: Boolean, canSave: Boolean, onAction: (ScheduleAction) -> Unit) {
+internal fun LessonForm(
+    editor: LessonEditorState,
+    children: List<Child>,
+    childrenReady: Boolean,
+    canSave: Boolean,
+    onAction: (ScheduleAction) -> Unit,
+    videoScanInProgress: Boolean = false,
+    videoScanMessage: String? = null
+) {
     val creating = editor.mode == LessonEditorMode.CREATE
     val enabled = !editor.saving
     fun text(field: LessonTextField, value: String) { if (enabled) onAction(ScheduleAction.ChangeText(editor.sessionId, field, value)) }
@@ -39,7 +47,15 @@ internal fun LessonForm(editor: LessonEditorState, children: List<Child>, childr
         if (!creating) {
             OutlinedTextField(value = editor.comment, onValueChange = { text(LessonTextField.COMMENT, it) }, enabled = enabled,
                 label = { Text("Комментарий специалиста") }, minLines = 3, modifier = Modifier.fillMaxWidth())
-            VideoAttachmentsEditor(editor.videoUris, { onAction(ScheduleAction.ChangeVideos(editor.sessionId, it)) }, enabled, editor.sessionId)
+            VideoAttachmentsEditor(
+                videoUris = editor.videoUris,
+                onChange = { onAction(ScheduleAction.ChangeVideos(editor.sessionId, it)) },
+                enabled = enabled,
+                sessionId = editor.sessionId,
+                onAutoAttach = { onAction(ScheduleAction.AutoAttachLessonVideos(editor.sessionId)) },
+                scanInProgress = videoScanInProgress,
+                scanMessage = videoScanMessage
+            )
         }
         Button(enabled = canSave, onClick = { onAction(ScheduleAction.ConfirmLesson(editor.sessionId)) }, modifier = Modifier.fillMaxWidth()) {
             Text(if (editor.saving) "Сохранение…" else if (creating) "Создать занятие" else "Сохранить изменения")

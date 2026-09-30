@@ -190,7 +190,8 @@ fun App() {
         factory = ScheduleViewModelFactory(
             lessonRepository = lessonRepository,
             childRepository = childRepository,
-            settings = settings
+            settings = settings,
+            findLessonVideos = container.findLessonVideos
         )
     )
 

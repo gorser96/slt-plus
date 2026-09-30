@@ -78,7 +78,8 @@ private fun ScheduleBody(
         androidx.compose.runtime.key(editor.sessionId) {
             when (editor.mode) {
                 LessonEditorMode.CREATE -> LessonCreateView(editor, uiState.children, childrenReady, uiState.canSave, onAction)
-                LessonEditorMode.EDIT -> LessonEditView(editor, uiState.children, childrenReady, uiState.canSave, onAction)
+                LessonEditorMode.EDIT -> LessonEditView(editor, uiState.children, childrenReady, uiState.canSave, onAction,
+                    uiState.videoScanInProgress, uiState.videoScanMessage)
                 LessonEditorMode.DETAILS -> selectedLesson?.let {
                     LessonDetailsView(canSave = uiState.canSave, canDelete = uiState.canDelete, editor = editor, uiModel = it,
                         onBack = { onAction(ScheduleAction.CloseLesson) }, onEdit = { onAction(ScheduleAction.StartEditingLesson) },
@@ -86,6 +87,9 @@ private fun ScheduleBody(
                         comment = editor.comment, videoUris = editor.videoUris,
                         onCommentChange = { value -> onAction(ScheduleAction.ChangeText(editor.sessionId, LessonTextField.COMMENT, value)) },
                         onVideosChange = { uris -> onAction(ScheduleAction.ChangeVideos(editor.sessionId, uris)) },
+                        onAutoAttach = { onAction(ScheduleAction.AutoAttachLessonVideos(editor.sessionId)) },
+                        videoScanInProgress = uiState.videoScanInProgress,
+                        videoScanMessage = uiState.videoScanMessage,
                         onSave = { onAction(ScheduleAction.ConfirmLesson(editor.sessionId)) })
                 }
             }

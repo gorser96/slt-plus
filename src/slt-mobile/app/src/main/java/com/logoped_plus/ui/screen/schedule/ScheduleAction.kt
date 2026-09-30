@@ -17,6 +17,7 @@ sealed interface ScheduleAction {
     data class ChangeDate(val sessionId: String, val date: LocalDate) : ScheduleAction
     data class ChangeChildren(val sessionId: String, val ids: List<String>) : ScheduleAction
     data class ChangeVideos(val sessionId: String, val uris: List<String>) : ScheduleAction
+    data class AutoAttachLessonVideos(val sessionId: String) : ScheduleAction
     data class ConfirmLesson(val sessionId: String) : ScheduleAction
     data class DeleteLesson(val sessionId: String) : ScheduleAction
     data class ChangeViewMode(val mode: ScheduleViewMode) : ScheduleAction

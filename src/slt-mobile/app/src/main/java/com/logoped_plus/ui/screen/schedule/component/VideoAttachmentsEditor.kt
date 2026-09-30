@@ -1,7 +1,9 @@
 package com.logoped_plus.ui.screen.schedule.component
 
+import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.AlertDialog
@@ -18,7 +20,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 
 @Composable
-fun VideoAttachmentsEditor(videoUris: List<String>, onChange: (List<String>) -> Unit, enabled: Boolean = true, sessionId: String = "") {
+fun VideoAttachmentsEditor(
+    videoUris: List<String>,
+    onChange: (List<String>) -> Unit,
+    enabled: Boolean = true,
+    sessionId: String = "",
+    onAutoAttach: (() -> Unit)? = null,
+    scanInProgress: Boolean = false,
+    scanMessage: String? = null
+) {
     var pendingRemoval by rememberSaveable { mutableStateOf<String?>(null) }
     var videoError by rememberSaveable { mutableStateOf<String?>(null) }
     var launchedSession by remember { mutableStateOf<String?>(null) }
@@ -43,6 +53,13 @@ fun VideoAttachmentsEditor(videoUris: List<String>, onChange: (List<String>) -> 
         videoError = if (failedCount > 0)
             "Не удалось прикрепить файлов: $failedCount. Остальные видео добавлены." else null
     }
+    val hasVideoPermission = context.checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO) == PackageManager.PERMISSION_GRANTED
+    val videoPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (!enabled || launchedSession != sessionId) return@rememberLauncherForActivityResult
+        launchedSession = null
+        if (granted) onAutoAttach?.invoke()
+        else videoError = "Нет разрешения на доступ к видео устройства."
+    }
 
     Text("Видео", style = MaterialTheme.typography.titleMedium)
     videoUris.forEach { uri ->
@@ -65,8 +82,24 @@ fun VideoAttachmentsEditor(videoUris: List<String>, onChange: (List<String>) -> 
             }
         }
     ) { Text("Выбрать видео") }
+    onAutoAttach?.let { attach ->
+        TextButton(
+            enabled = enabled && !scanInProgress,
+            onClick = {
+                videoError = null
+                if (hasVideoPermission) attach()
+                else {
+                    launchedSession = sessionId
+                    videoPermission.launch(Manifest.permission.READ_MEDIA_VIDEO)
+                }
+            }
+        ) { Text(if (scanInProgress) "Поиск видео…" else "Найти видео занятия") }
+    }
     videoError?.let { message ->
         Text(message, color = MaterialTheme.colorScheme.error)
+    }
+    scanMessage?.let { message ->
+        Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     pendingRemoval?.takeIf { enabled }?.let { uri ->
         AlertDialog(

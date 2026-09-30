@@ -10,8 +10,9 @@
 | [LessonRepository.kt](LessonRepository.kt) | StateFlow LessonLoadState, retryLoading, suspend addLesson/updateLesson/deleteLesson; синхронных чтений нет |
 | [LessonLoadState.kt](LessonLoadState.kt) | Loading/Ready/Error с целым предыдущим снимком |
 | [LessonWriteResult.kt](LessonWriteResult.kt) | Success(lesson); Failure: NotReady, InvalidData, UnknownChild, NotFound, Conflict, StorageUnavailable |
+| [VideoLibrary.kt](VideoLibrary.kt) | suspend findVideos(from, to) — видео устройства в интервале эпохи |
 
-Модели — [domain.model](../model/PACKAGE.md), реализации — [data.repository](../../data/repository/PACKAGE.md). Клиенты — [дети](../../ui/screen/children/PACKAGE.md) и [расписание](../../ui/screen/schedule/PACKAGE.md). retryLoading занятий заменяет подписку из Ready/Error; в Loading игнорируется. Success подтверждает commit, а не последующую эмиссию.
+Модели — [domain.model](../model/PACKAGE.md), реализации — [data.repository](../../data/repository/PACKAGE.md) и [data.media](../../data/media/PACKAGE.md) (`VideoLibrary`). Клиенты — [дети](../../ui/screen/children/PACKAGE.md), [расписание](../../ui/screen/schedule/PACKAGE.md) и [use cases](../usecase/PACKAGE.md). retryLoading занятий заменяет подписку из Ready/Error; в Loading игнорируется. Success подтверждает commit, а не последующую эмиссию.
 
 ## Проверки
 

@@ -49,6 +49,9 @@ fun LessonDetailsView(
     videoUris: List<String>,
     onCommentChange: (String) -> Unit,
     onVideosChange: (List<String>) -> Unit,
+    onAutoAttach: () -> Unit,
+    videoScanInProgress: Boolean,
+    videoScanMessage: String?,
     onSave: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -125,7 +128,15 @@ fun LessonDetailsView(
             minLines = 3,
             modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
         )
-        VideoAttachmentsEditor(videoUris, onVideosChange, !editor.saving, editor.sessionId)
+        VideoAttachmentsEditor(
+            videoUris = videoUris,
+            onChange = onVideosChange,
+            enabled = !editor.saving,
+            sessionId = editor.sessionId,
+            onAutoAttach = onAutoAttach,
+            scanInProgress = videoScanInProgress,
+            scanMessage = videoScanMessage
+        )
 
         Spacer(modifier = Modifier.height(32.dp))
 

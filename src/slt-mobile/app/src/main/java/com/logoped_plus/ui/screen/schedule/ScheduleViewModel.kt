@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.logoped_plus.data.preferences.SettingsStore
 import com.logoped_plus.domain.model.Lesson
 import com.logoped_plus.domain.repository.*
+import com.logoped_plus.domain.usecase.FindLessonVideosUseCase
 import com.logoped_plus.ui.screen.schedule.model.LessonUiModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +18,8 @@ import java.util.UUID
 class ScheduleViewModel(
     private val lessonRepository: LessonRepository,
     private val childRepository: ChildRepository,
-    private val settings: SettingsStore
+    private val settings: SettingsStore,
+    private val findLessonVideos: FindLessonVideosUseCase
 ) : ViewModel() {
     private val today = LocalDate.now()
     private var confirmed: Lesson? = null
@@ -96,6 +98,7 @@ class ScheduleViewModel(
             is ScheduleAction.ChangeDate -> change(action.sessionId) { if (it.mode == LessonEditorMode.DETAILS) it else it.copy(epochDay = action.date.toEpochDay()) }
             is ScheduleAction.ChangeChildren -> change(action.sessionId) { if (it.mode == LessonEditorMode.DETAILS) it else it.copy(childIds = action.ids.distinct()) }
             is ScheduleAction.ChangeVideos -> change(action.sessionId) { if (it.mode == LessonEditorMode.CREATE) it else it.copy(videoUris = action.uris.distinct()) }
+            is ScheduleAction.AutoAttachLessonVideos -> autoAttach(action.sessionId)
             is ScheduleAction.ConfirmLesson -> confirm(action.sessionId)
             is ScheduleAction.DeleteLesson -> delete(action.sessionId)
             is ScheduleAction.SelectDate -> mutableState.value = state.copy(selectedDate = action.date)
@@ -118,8 +121,37 @@ class ScheduleViewModel(
             detailsDraft = if (keepDetails) mutableState.value.detailsDraft else null,
             isCreatingLesson = editor?.mode == LessonEditorMode.CREATE,
             isEditingLesson = editor?.mode == LessonEditorMode.EDIT,
-            creationDateTime = if (editor?.mode == LessonEditorMode.CREATE) LocalDate.ofEpochDay(editor.epochDay).atStartOfDay() else null)
+            creationDateTime = if (editor?.mode == LessonEditorMode.CREATE) LocalDate.ofEpochDay(editor.epochDay).atStartOfDay() else null,
+            videoScanInProgress = false, videoScanMessage = null)
         refresh()
+    }
+
+    private fun autoAttach(sessionId: String) {
+        val state = mutableState.value
+        if (state.videoScanInProgress) return
+        val editor = state.editor?.takeIf { it.sessionId == sessionId } ?: return
+        val lesson = editor.toLesson()
+        if (lesson == null) {
+            mutableState.value = state.copy(videoScanMessage = "Исправьте дату, время или длительность занятия.")
+            return
+        }
+        mutableState.value = state.copy(videoScanInProgress = true, videoScanMessage = null)
+        viewModelScope.launch {
+            val found = findLessonVideos(lesson.scheduledAt, lesson.durationMinutes, editor.videoUris.toSet())
+            val current = mutableState.value
+            val currentEditor = current.editor?.takeIf { it.sessionId == sessionId }
+            if (currentEditor == null || current.saving) {
+                mutableState.value = current.copy(videoScanInProgress = false)
+                return@launch
+            }
+            val added = found.filter { it.uri !in currentEditor.videoUris }
+            if (added.isEmpty()) {
+                mutableState.value = current.copy(videoScanInProgress = false, videoScanMessage = "Видео за время занятия не найдены.")
+            } else {
+                onAction(ScheduleAction.ChangeVideos(sessionId, (currentEditor.videoUris + added.map { it.uri }).distinct()))
+                mutableState.value = mutableState.value.copy(videoScanInProgress = false, videoScanMessage = "Добавлено видео: ${added.size}.")
+            }
+        }
     }
 
     private fun confirm(sessionId: String) {
