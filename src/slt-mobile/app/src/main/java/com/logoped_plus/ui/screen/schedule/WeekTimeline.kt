@@ -4,30 +4,23 @@ import com.logoped_plus.ui.screen.schedule.model.LessonUiModel
 import java.time.Duration
 import java.time.LocalDate
 
-internal data class WeekLessonSpan(
+internal data class DayLessonSpan(
     val lesson: LessonUiModel,
     val startMinute: Float,
     val endMinute: Float,
-    val lane: Int? = null
+    val lane: Int? = null,
+    val laneCount: Int? = null
 ) {
     fun occupiesHour(hour: Int): Boolean = startMinute < (hour + 1) * 60 && endMinute > hour * 60
 }
 
-internal data class WeekExtraGroup(
-    val spans: List<WeekLessonSpan>,
-    val topMinute: Float
-)
-
-internal data class WeekDayTimeline(
-    val visibleSpans: List<WeekLessonSpan>,
-    val extraGroups: List<WeekExtraGroup>
+internal data class DayTimeline(
+    val spans: List<DayLessonSpan>
 ) {
-    fun isHourEmpty(hour: Int): Boolean =
-        visibleSpans.none { it.occupiesHour(hour) } &&
-            extraGroups.none { group -> group.spans.any { it.occupiesHour(hour) } }
+    fun isHourEmpty(hour: Int): Boolean = spans.none { it.occupiesHour(hour) }
 }
 
-internal fun buildWeekDayTimeline(date: LocalDate, lessons: List<LessonUiModel>): WeekDayTimeline {
+internal fun buildDayTimeline(date: LocalDate, lessons: List<LessonUiModel>): DayTimeline {
     val dayStart = date.atStartOfDay()
     val dayEnd = dayStart.plusDays(1)
     // Stable start-time order, including parts of lessons continued from the previous day.
@@ -38,7 +31,7 @@ internal fun buildWeekDayTimeline(date: LocalDate, lessons: List<LessonUiModel>)
             if (lesson.durationMinutes <= 0 || lesson.scheduledAt >= dayEnd || end <= dayStart) {
                 null
             } else {
-                WeekLessonSpan(
+                DayLessonSpan(
                     lesson,
                     Duration.between(dayStart, maxOf(dayStart, lesson.scheduledAt)).seconds / 60f,
                     Duration.between(dayStart, minOf(dayEnd, end)).seconds / 60f
@@ -46,20 +39,30 @@ internal fun buildWeekDayTimeline(date: LocalDate, lessons: List<LessonUiModel>)
             }
         }
 
-    val visibleSpans = mutableListOf<WeekLessonSpan>()
-    val extraGroups = mutableListOf<WeekExtraGroup>()
-    var cluster = emptyList<WeekLessonSpan>()
+    val laidOut = mutableListOf<DayLessonSpan>()
+    var cluster = emptyList<DayLessonSpan>()
     var clusterMaxEnd = 0f
 
     fun flushCluster() {
         if (cluster.size == 1) {
-            visibleSpans += cluster.first()
-        } else if (cluster.size >= 2) {
-            visibleSpans += cluster.first().copy(lane = 0)
-            visibleSpans += cluster[1].copy(lane = 1)
-            val hidden = cluster.drop(2)
-            if (hidden.isNotEmpty()) {
-                extraGroups += WeekExtraGroup(hidden, hidden.first().startMinute)
+            laidOut += cluster.first()
+        } else {
+            // Greedy interval partitioning: first lane whose last end is before the
+            // start, otherwise a new lane. Yields the minimum number of lanes.
+            val laneEnds = mutableListOf<Float>()
+            val lanes = IntArray(cluster.size)
+            cluster.forEachIndexed { index, span ->
+                val existing = laneEnds.indexOfFirst { it <= span.startMinute }
+                lanes[index] = if (existing >= 0) {
+                    laneEnds[existing] = span.endMinute
+                    existing
+                } else {
+                    laneEnds.add(span.endMinute)
+                    laneEnds.lastIndex
+                }
+            }
+            cluster.forEachIndexed { index, span ->
+                laidOut += span.copy(lane = lanes[index], laneCount = laneEnds.size)
             }
         }
         cluster = emptyList()
@@ -78,5 +81,5 @@ internal fun buildWeekDayTimeline(date: LocalDate, lessons: List<LessonUiModel>)
     }
     flushCluster()
 
-    return WeekDayTimeline(visibleSpans, extraGroups)
+    return DayTimeline(laidOut)
 }

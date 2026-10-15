@@ -108,6 +108,10 @@ class ScheduleViewModel(
             ScheduleAction.NextMonth -> mutableState.value = state.copy(displayedMonth = state.displayedMonth.plusMonths(1))
             ScheduleAction.PreviousWeek -> mutableState.value = state.copy(displayedWeekStart = state.displayedWeekStart.minusWeeks(1))
             ScheduleAction.NextWeek -> mutableState.value = state.copy(displayedWeekStart = state.displayedWeekStart.plusWeeks(1))
+            ScheduleAction.PreviousDay -> mutableState.value = state.copy(selectedDate = state.selectedDate.minusDays(1))
+            ScheduleAction.NextDay -> mutableState.value = state.copy(selectedDate = state.selectedDate.plusDays(1))
+            is ScheduleAction.OpenDay -> mutableState.value = state.copy(selectedDate = action.date, viewMode = ScheduleViewMode.DAY,
+                displayedMonth = YearMonth.from(action.date), displayedWeekStart = action.date.startOfWeek())
         }
     }
 

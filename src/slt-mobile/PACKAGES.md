@@ -17,7 +17,7 @@ Android-приложение на Kotlin и Jetpack Compose, один Gradle-м�
 | [com.logoped_plus.ui](app/src/main/java/com/logoped_plus/ui/PACKAGE.md) | Боковое меню и список разделов |
 | [com.logoped_plus.ui.screen](app/src/main/java/com/logoped_plus/ui/screen/PACKAGE.md) | Экран детей, переключение представлений расписания, черновики, экран настроек |
 | [com.logoped_plus.ui.screen.children](app/src/main/java/com/logoped_plus/ui/screen/children/PACKAGE.md) | Состояние списка детей, добавление, переименование, проверка имени |
-| [com.logoped_plus.ui.screen.schedule](app/src/main/java/com/logoped_plus/ui/screen/schedule/PACKAGE.md) | Календарь, неделя, действия, состояние, создание/просмотр/редактирование/удаление занятия |
+| [com.logoped_plus.ui.screen.schedule](app/src/main/java/com/logoped_plus/ui/screen/schedule/PACKAGE.md) | Календарь, неделя, день, действия, состояние, создание/просмотр/редактирование/удаление занятия |
 | [com.logoped_plus.ui.screen.schedule.component](app/src/main/java/com/logoped_plus/ui/screen/schedule/component/PACKAGE.md) | Выбор нескольких детей, поиск по имени, выбор/открытие/открепление видео |
 | [com.logoped_plus.ui.screen.schedule.model](app/src/main/java/com/logoped_plus/ui/screen/schedule/model/PACKAGE.md) | Данные занятия для отображения, имена детей и URI |
 | [com.logoped_plus.ui.theme](app/src/main/java/com/logoped_plus/ui/theme/PACKAGE.md) | Compose-тема, динамические цвета, типографика |

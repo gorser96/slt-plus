@@ -164,6 +164,31 @@ private fun ScheduleBody(
                             onAction(
                                 ScheduleAction.SelectLesson(uiModel.id)
                             )
+                        },
+                        onOpenDay = { date ->
+                            onAction(ScheduleAction.OpenDay(date))
+                        }
+                    )
+                }
+
+                ScheduleViewMode.DAY -> {
+                    DayScheduleView(
+                        onEmptyHourDoubleClick = { dateTime ->
+                            onAction(ScheduleAction.StartCreatingLesson(dateTime))
+                        },
+                        modifier = Modifier.height(weekHeight),
+                        date = uiState.selectedDate,
+                        lessons = uiState.lessons,
+                        onPreviousDay = {
+                            onAction(ScheduleAction.PreviousDay)
+                        },
+                        onNextDay = {
+                            onAction(ScheduleAction.NextDay)
+                        },
+                        onLessonClick = { uiModel ->
+                            onAction(
+                                ScheduleAction.SelectLesson(uiModel.id)
+                            )
                         }
                     )
                 }
@@ -194,7 +219,7 @@ private fun ScheduleViewModeSelector(
             selected = selectedMode == ScheduleViewMode.MONTH, onClick = {
                 onModeSelected(ScheduleViewMode.MONTH)
             }, shape = SegmentedButtonDefaults.itemShape(
-                index = 0, count = 2
+                index = 0, count = 3
             )
         ) {
             Text("Месяц")
@@ -204,10 +229,20 @@ private fun ScheduleViewModeSelector(
             selected = selectedMode == ScheduleViewMode.WEEK, onClick = {
                 onModeSelected(ScheduleViewMode.WEEK)
             }, shape = SegmentedButtonDefaults.itemShape(
-                index = 1, count = 2
+                index = 1, count = 3
             )
         ) {
             Text("Неделя")
+        }
+
+        SegmentedButton(
+            selected = selectedMode == ScheduleViewMode.DAY, onClick = {
+                onModeSelected(ScheduleViewMode.DAY)
+            }, shape = SegmentedButtonDefaults.itemShape(
+                index = 2, count = 3
+            )
+        ) {
+            Text("День")
         }
     }
 }

@@ -25,4 +25,7 @@ sealed interface ScheduleAction {
     data object NextMonth : ScheduleAction
     data object PreviousWeek : ScheduleAction
     data object NextWeek : ScheduleAction
+    data object PreviousDay : ScheduleAction
+    data object NextDay : ScheduleAction
+    data class OpenDay(val date: LocalDate) : ScheduleAction
 }

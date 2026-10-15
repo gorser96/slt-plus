@@ -10,7 +10,7 @@
 | [SettingsViewModel.kt](SettingsViewModel.kt) | Состояние `hideWeekend`, подписка на store, `setHideWeekend` |
 | [SettingsViewModelFactory.kt](SettingsViewModelFactory.kt) | Фабрика с [SettingsStore](../../data/preferences/PACKAGE.md) |
 
-Экраны подключает [App](../../PACKAGE.md). Бизнес-переходы — [children](children/PACKAGE.md) и [schedule](schedule/PACKAGE.md). Настройки хранятся в [data.preferences](../../data/preferences/PACKAGE.md) и переживают перезапуск. Месяц и неделя прокручивают весь экран; недельная сетка дополнительно прокручивает часы внутри блока с закреплёнными заголовками дней. Ошибка чтения не подменяется пустым расписанием.
+Экраны подключает [App](../../PACKAGE.md). Бизнес-переходы — [children](children/PACKAGE.md) и [schedule](schedule/PACKAGE.md). Настройки хранятся в [data.preferences](../../data/preferences/PACKAGE.md) и переживают перезапуск. Месяц, неделя и день прокручивают весь экран; недельная и дневная сетки дополнительно прокручивают часы внутри блока, в неделе заголовки дней закреплены. Ошибка чтения не подменяется пустым расписанием.
 
 ## Проверки
 

@@ -4,7 +4,8 @@ import java.time.LocalDate
 
 enum class ScheduleViewMode {
     MONTH,
-    WEEK
+    WEEK,
+    DAY
 }
 
 fun LocalDate.startOfWeek(): LocalDate {

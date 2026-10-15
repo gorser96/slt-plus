@@ -15,85 +15,83 @@ class WeekTimelineTest {
     private val nextDay = date.plusDays(1)
 
     @Test
-    fun singleLessonTakesFullWidthWithoutGroup() {
-        val timeline = buildWeekDayTimeline(date, listOf(lesson("a", 9, 0, 60)))
+    fun singleLessonTakesFullWidthWithoutLanes() {
+        val timeline = buildDayTimeline(date, listOf(lesson("a", 9, 0, 60)))
 
-        val span = timeline.visibleSpans.single()
+        val span = timeline.spans.single()
         assertEquals("a", span.lesson.id)
         assertNull(span.lane)
+        assertNull(span.laneCount)
         assertEquals(540f, span.startMinute, 0.001f)
         assertEquals(600f, span.endMinute, 0.001f)
-        assertTrue(timeline.extraGroups.isEmpty())
         assertTrue(timeline.isHourEmpty(8))
         assertFalse(timeline.isHourEmpty(9))
         assertTrue(timeline.isHourEmpty(10))
     }
 
     @Test
-    fun twoOverlappingLessonsBecomeColumnsInStartOrder() {
-        val timeline = buildWeekDayTimeline(date, listOf(
+    fun twoOverlappingLessonsBecomeTwoLanesInStartOrder() {
+        val timeline = buildDayTimeline(date, listOf(
             lesson("b", 9, 30, 30),
             lesson("a", 9, 0, 120)
         ))
 
-        assertEquals(listOf("a", "b"), timeline.visibleSpans.map { it.lesson.id })
-        assertEquals(0, timeline.visibleSpans[0].lane)
-        assertEquals(1, timeline.visibleSpans[1].lane)
-        assertTrue(timeline.extraGroups.isEmpty())
+        assertEquals(listOf("a", "b"), timeline.spans.map { it.lesson.id })
+        assertEquals(0, timeline.spans[0].lane)
+        assertEquals(1, timeline.spans[1].lane)
+        assertEquals(2, timeline.spans[0].laneCount)
+        assertEquals(2, timeline.spans[1].laneCount)
         assertFalse(timeline.isHourEmpty(9))
         assertFalse(timeline.isHourEmpty(10))
     }
 
     @Test
-    fun threeOverlappingLessonsKeepFirstTwoColumnsAndHideTheRest() {
-        val timeline = buildWeekDayTimeline(date, listOf(
+    fun threeMutuallyOverlappingLessonsGetThreeLanes() {
+        val timeline = buildDayTimeline(date, listOf(
             lesson("c", 10, 0, 90),
             lesson("b", 9, 30, 60),
             lesson("a", 9, 0, 120)
         ))
 
-        assertEquals(listOf("a", "b"), timeline.visibleSpans.map { it.lesson.id })
-        assertEquals(0, timeline.visibleSpans[0].lane)
-        assertEquals(1, timeline.visibleSpans[1].lane)
-
-        val group = timeline.extraGroups.single()
-        assertEquals(listOf("c"), group.spans.map { it.lesson.id })
-        assertEquals(600f, group.topMinute, 0.001f)
+        assertEquals(listOf("a", "b", "c"), timeline.spans.map { it.lesson.id })
+        assertEquals(listOf(0, 1, 2), timeline.spans.map { it.lane })
+        assertEquals(3, timeline.spans[0].laneCount)
+        assertEquals(3, timeline.spans[1].laneCount)
+        assertEquals(3, timeline.spans[2].laneCount)
         assertFalse(timeline.isHourEmpty(11))
     }
 
     @Test
     fun touchingIntervalsAreNotOverlapping() {
-        val timeline = buildWeekDayTimeline(date, listOf(
+        val timeline = buildDayTimeline(date, listOf(
             lesson("a", 9, 0, 30),
             lesson("b", 9, 30, 30)
         ))
 
-        assertEquals(listOf("a", "b"), timeline.visibleSpans.map { it.lesson.id })
-        assertNull(timeline.visibleSpans[0].lane)
-        assertNull(timeline.visibleSpans[1].lane)
-        assertTrue(timeline.extraGroups.isEmpty())
+        assertEquals(listOf("a", "b"), timeline.spans.map { it.lesson.id })
+        timeline.spans.forEach { span ->
+            assertNull(span.lane)
+            assertNull(span.laneCount)
+        }
     }
 
     @Test
-    fun chainedOverlapsFormOneGroup() {
-        val timeline = buildWeekDayTimeline(date, listOf(
+    fun chainedOverlapsFormOneClusterWithTwoLanes() {
+        val timeline = buildDayTimeline(date, listOf(
             lesson("a", 9, 0, 60),
             lesson("b", 9, 30, 60),
             lesson("c", 10, 15, 45)
         ))
 
-        assertEquals(listOf("a", "b"), timeline.visibleSpans.map { it.lesson.id })
-        assertEquals(0, timeline.visibleSpans[0].lane)
-        assertEquals(1, timeline.visibleSpans[1].lane)
-
-        val group = timeline.extraGroups.single()
-        assertEquals(listOf("c"), group.spans.map { it.lesson.id })
-        assertEquals(615f, group.topMinute, 0.001f)
+        assertEquals(listOf("a", "b", "c"), timeline.spans.map { it.lesson.id })
+        assertEquals(listOf(0, 1, 0), timeline.spans.map { it.lane })
+        assertEquals(2, timeline.spans[0].laneCount)
+        assertEquals(2, timeline.spans[1].laneCount)
+        assertEquals(2, timeline.spans[2].laneCount)
     }
 
     @Test
-    fun midnightSplitKeepsDayClusteringIndependent() {
+    fun midnightSplitKeepsDayLayingOutIndependent() {
         val night = LessonUiModel(
             id = "night",
             scheduledAt = date.atTime(23, 30),
@@ -102,25 +100,27 @@ class WeekTimelineTest {
             comment = ""
         )
 
-        val firstDay = buildWeekDayTimeline(date, listOf(
+        val firstDay = buildDayTimeline(date, listOf(
             night,
             lesson("late", 23, 45, 30)
         ))
-        assertEquals(listOf("night", "late"), firstDay.visibleSpans.map { it.lesson.id })
-        assertEquals(0, firstDay.visibleSpans[0].lane)
-        assertEquals(1, firstDay.visibleSpans[1].lane)
-        assertTrue(firstDay.extraGroups.isEmpty())
+        assertEquals(listOf("night", "late"), firstDay.spans.map { it.lesson.id })
+        assertEquals(0, firstDay.spans[0].lane)
+        assertEquals(1, firstDay.spans[1].lane)
+        assertEquals(2, firstDay.spans[0].laneCount)
+        assertEquals(2, firstDay.spans[1].laneCount)
 
-        val secondDay = buildWeekDayTimeline(nextDay, listOf(
+        val secondDay = buildDayTimeline(nextDay, listOf(
             night,
             lesson("early", 0, 15, 45, nextDay)
         ))
-        assertEquals(listOf("night", "early"), secondDay.visibleSpans.map { it.lesson.id })
-        assertEquals(0f, secondDay.visibleSpans[0].startMinute, 0.001f)
-        assertEquals(30f, secondDay.visibleSpans[0].endMinute, 0.001f)
-        assertEquals(0, secondDay.visibleSpans[0].lane)
-        assertEquals(1, secondDay.visibleSpans[1].lane)
-        assertTrue(secondDay.extraGroups.isEmpty())
+        assertEquals(listOf("night", "early"), secondDay.spans.map { it.lesson.id })
+        assertEquals(0f, secondDay.spans[0].startMinute, 0.001f)
+        assertEquals(30f, secondDay.spans[0].endMinute, 0.001f)
+        assertEquals(0, secondDay.spans[0].lane)
+        assertEquals(1, secondDay.spans[1].lane)
+        assertEquals(2, secondDay.spans[0].laneCount)
+        assertEquals(2, secondDay.spans[1].laneCount)
     }
 
     private fun lesson(
