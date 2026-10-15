@@ -7,7 +7,7 @@ Android-приложение на Kotlin и Jetpack Compose, один Gradle-м�
 | Package / описание | Что искать |
 |---|---|
 | [com.logoped_plus](app/src/main/java/com/logoped_plus/PACKAGE.md) | Запуск, создание зависимостей, переключение экранов, системная кнопка «Назад», выход |
-| [com.logoped_plus.data.local](app/src/main/java/com/logoped_plus/data/local/PACKAGE.md) | Room-схема, DAO, файловая БД детей |
+| [com.logoped_plus.data.local](app/src/main/java/com/logoped_plus/data/local/PACKAGE.md) | Room-схема v3 (миграции 1→2, 2→3), DAO, файловая БД детей и занятий |
 | [com.logoped_plus.data.media](app/src/main/java/com/logoped_plus/data/media/PACKAGE.md) | Видео устройства через MediaStore (реализация `VideoLibrary`) |
 | [com.logoped_plus.data.preferences](app/src/main/java/com/logoped_plus/data/preferences/PACKAGE.md) | Настройки приложения в SharedPreferences: «Скрывать выходные» |
 | [com.logoped_plus.data.repository](app/src/main/java/com/logoped_plus/data/repository/PACKAGE.md) | Room-хранение детей и занятий, проверки repository |
@@ -16,7 +16,7 @@ Android-приложение на Kotlin и Jetpack Compose, один Gradle-м�
 | [com.logoped_plus.domain.usecase](app/src/main/java/com/logoped_plus/domain/usecase/PACKAGE.md) | Use case выбора видео по интервалу занятия |
 | [com.logoped_plus.ui](app/src/main/java/com/logoped_plus/ui/PACKAGE.md) | Боковое меню и список разделов |
 | [com.logoped_plus.ui.screen](app/src/main/java/com/logoped_plus/ui/screen/PACKAGE.md) | Экран детей, переключение представлений расписания, черновики, экран настроек |
-| [com.logoped_plus.ui.screen.children](app/src/main/java/com/logoped_plus/ui/screen/children/PACKAGE.md) | Состояние списка детей, добавление, переименование, проверка имени |
+| [com.logoped_plus.ui.screen.children](app/src/main/java/com/logoped_plus/ui/screen/children/PACKAGE.md) | Состояние списка детей, добавление, переименование, удаление с подтверждением, проверка имени |
 | [com.logoped_plus.ui.screen.schedule](app/src/main/java/com/logoped_plus/ui/screen/schedule/PACKAGE.md) | Календарь, неделя, день, действия, состояние, создание/просмотр/редактирование/удаление занятия |
 | [com.logoped_plus.ui.screen.schedule.component](app/src/main/java/com/logoped_plus/ui/screen/schedule/component/PACKAGE.md) | Выбор нескольких детей, поиск по имени, выбор/открытие/открепление видео |
 | [com.logoped_plus.ui.screen.schedule.model](app/src/main/java/com/logoped_plus/ui/screen/schedule/model/PACKAGE.md) | Данные занятия для отображения, имена детей и URI |
@@ -27,6 +27,7 @@ Android-приложение на Kotlin и Jetpack Compose, один Gradle-м�
 - Запуск: `AndroidManifest.xml` → `MainActivity` → `LogopedPlusTheme` → `App` → выбранный экран.
 - Изменение занятия: `ScheduleScreen` → форма из `ui.screen.schedule` → `ScheduleAction` → `ScheduleViewModel` → `LessonRepository` → `RoomLessonRepository` → обновлённый `ScheduleUiState`.
 - Изменение имени ребёнка: `ChildrenScreen` → `ChildrenViewModel` → `ChildRepository.state` → обновление списка детей и подписанного `ScheduleViewModel` → новые имена в `LessonUiModel`.
+- Удаление ребёнка: `ChildrenScreen` (форма редактирования + `DeleteChildDialog`) → `ChildrenViewModel.delete` → `ChildRepository.deleteChild` → `RoomChildRepository` → `ChildDao.deleteOnce` (снимок имени участников + удаление записи) → Flow обновляет список детей и расписание (занятия остаются, имена — снимки в `LessonUiModel`).
 - Видеовложение: `VideoAttachmentsEditor` → черновик формы/экрана → `UpdateLesson` → `VideoAttachment`. Открытие URI выполняет `VideoAttachmentLink`.
 - Автоподкрепление видео: `VideoAttachmentsEditor` (кнопка, разрешение `READ_MEDIA_VIDEO`) → `AutoAttachLessonVideos` → `ScheduleViewModel` → `FindLessonVideosUseCase` → `MediaStoreVideoScanner` → черновик через `ChangeVideos`.
 - Настройка «Скрывать выходные»: `SettingsScreen` → `SettingsViewModel` → `SettingsStore` → SharedPreferences; `ScheduleViewModel` подписывается на store и передаёт флаг в `WeekScheduleView` (пять/семь столбцов).
@@ -35,8 +36,8 @@ Android-приложение на Kotlin и Jetpack Compose, один Gradle-м�
 
 | Путь | Назначение |
 |---|---|
-| [OpenSpec](../openspec/README.md), [настройки](../openspec/config.yaml) | Разработка по спецификациям и общие правила проекта |
-| [Контракты OpenSpec](../openspec/README.md), [статус проверок](../openspec/verification/README.md) | Требования функций и незавершённая приёмка |
+| [OpenSpec](../../openspec/README.md), [настройки](../../openspec/config.yaml) | Разработка по спецификациям и общие правила проекта |
+| [Контракты OpenSpec](../../openspec/README.md), [статус проверок](../../openspec/verification/README.md) | Требования функций и незавершённая приёмка |
 | [app/src/main/AndroidManifest.xml](app/src/main/AndroidManifest.xml) | Activity запуска, тема Android, backup, параметры приложения |
 | [app/src/main/res](app/src/main/res) | Ресурсы Android: имя приложения, XML-тема, иконки, backup-правила; многие UI-строки находятся прямо в Kotlin |
 | [app/build.gradle.kts](app/build.gradle.kts) | SDK, Compose и зависимости приложения |

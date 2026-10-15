@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.logoped_plus.data.preferences.SettingsStore
 import com.logoped_plus.domain.model.Lesson
+import com.logoped_plus.domain.model.LessonParticipant
 import com.logoped_plus.domain.repository.*
 import com.logoped_plus.domain.usecase.FindLessonVideosUseCase
 import com.logoped_plus.ui.screen.schedule.model.LessonUiModel
@@ -96,7 +97,8 @@ class ScheduleViewModel(
                 }
             }
             is ScheduleAction.ChangeDate -> change(action.sessionId) { if (it.mode == LessonEditorMode.DETAILS) it else it.copy(epochDay = action.date.toEpochDay()) }
-            is ScheduleAction.ChangeChildren -> change(action.sessionId) { if (it.mode == LessonEditorMode.DETAILS) it else it.copy(childIds = action.ids.distinct()) }
+            is ScheduleAction.ChangeChildren -> change(action.sessionId) { if (it.mode == LessonEditorMode.DETAILS) it
+                else it.copy(participants = action.ids.distinct().map { id -> LessonParticipant(id) } + it.participants.filter { it.removedName != null }) }
             is ScheduleAction.ChangeVideos -> change(action.sessionId) { if (it.mode == LessonEditorMode.CREATE) it else it.copy(videoUris = action.uris.distinct()) }
             is ScheduleAction.AutoAttachLessonVideos -> autoAttach(action.sessionId)
             is ScheduleAction.ConfirmLesson -> confirm(action.sessionId)
@@ -196,8 +198,9 @@ class ScheduleViewModel(
 
     private fun toUiModel(lesson: Lesson, children: ChildLoadState): LessonUiModel {
         val byId = children.children.associateBy { it.id }
+        val names = lesson.participants.map { it.removedName ?: byId[it.childId]?.name }.filterNotNull().joinToString(", ")
         return LessonUiModel(lesson.id, lesson.scheduledAt, lesson.durationMinutes,
-            lesson.childIds.mapNotNull { byId[it]?.name }.joinToString(", "), lesson.comment, lesson.childIds,
+            names, lesson.comment, lesson.participants.size,
             lesson.videoAttachments.map { it.uri })
     }
 }

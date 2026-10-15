@@ -6,6 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.logoped_plus.data.local.ChildrenDatabase
 import com.logoped_plus.data.local.toDomain
 import com.logoped_plus.domain.model.Lesson
+import com.logoped_plus.domain.model.LessonParticipant
 import com.logoped_plus.domain.model.VideoAttachment
 import com.logoped_plus.domain.repository.ChildLoadState
 import com.logoped_plus.domain.repository.LessonLoadState
@@ -90,7 +91,7 @@ class RoomLessonRepositoryTest {
     }
 
     private fun lesson(id: String, childIds: List<String>, uris: List<String>): Lesson =
-        Lesson(id, childIds, LocalDateTime.of(2026, 9, 1, 9, 0), 40, "комментарий $id", uris.map(::VideoAttachment))
+        Lesson(id, childIds.map(::LessonParticipant), LocalDateTime.of(2026, 9, 1, 9, 0), 40, "комментарий $id", uris.map(::VideoAttachment))
 
     private fun count(query: String): Int = db.openHelper.readableDatabase.query(query).use { cursor ->
         check(cursor.moveToFirst())

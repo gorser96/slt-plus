@@ -6,6 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.logoped_plus.data.local.ChildrenDatabase
 import com.logoped_plus.data.local.toDomain
 import com.logoped_plus.domain.model.Lesson
+import com.logoped_plus.domain.model.LessonParticipant
 import com.logoped_plus.domain.model.VideoAttachment
 import com.logoped_plus.domain.repository.LessonWriteResult
 import kotlinx.coroutines.runBlocking
@@ -25,12 +26,12 @@ class LessonSeedTest {
             db.childDao().addOnce("seed-child-1", "Анна Смирнова")
             db.childDao().addOnce("seed-child-2", "Богдан Орлов")
             val today = LocalDate.now()
-            upsert(db, Lesson("seed-lesson-1", listOf("seed-child-1"), today.atTime(9, 0), 40,
+            upsert(db, Lesson("seed-lesson-1", listOf(LessonParticipant("seed-child-1")), today.atTime(9, 0), 40,
                 "Тренировка звуков [С], [Ш].",
                 listOf(VideoAttachment("content://media/external/video/1"), VideoAttachment("content://media/external/video/2"))))
-            upsert(db, Lesson("seed-lesson-2", listOf("seed-child-1", "seed-child-2"), today.atTime(10, 0), 50,
+            upsert(db, Lesson("seed-lesson-2", listOf(LessonParticipant("seed-child-1"), LessonParticipant("seed-child-2")), today.atTime(10, 0), 50,
                 "", listOf(VideoAttachment("content://media/external/video/1"))))
-            upsert(db, Lesson("seed-lesson-3", listOf("seed-child-2"), today.atTime(11, 0), 30, "", emptyList()))
+            upsert(db, Lesson("seed-lesson-3", listOf(LessonParticipant("seed-child-2")), today.atTime(11, 0), 30, "", emptyList()))
         } finally {
             db.close()
         }

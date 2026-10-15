@@ -14,3 +14,17 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_lesson_videos_lessonId_ordinal` ON `lesson_videos` (`lessonId`, `ordinal`)")
     }
 }
+
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `lesson_participants` RENAME TO `lesson_participants_old`")
+        // Table rename does not rename its indexes; drop them so the new table can use the names.
+        db.execSQL("DROP INDEX `index_lesson_participants_lessonId_ordinal`")
+        db.execSQL("DROP INDEX `index_lesson_participants_childId`")
+        db.execSQL("CREATE TABLE `lesson_participants` (`lessonId` TEXT NOT NULL, `childId` TEXT NOT NULL, `childName` TEXT, `ordinal` INTEGER NOT NULL, PRIMARY KEY(`lessonId`, `childId`), FOREIGN KEY(`lessonId`) REFERENCES `lessons`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+        db.execSQL("CREATE UNIQUE INDEX `index_lesson_participants_lessonId_ordinal` ON `lesson_participants` (`lessonId`, `ordinal`)")
+        db.execSQL("CREATE INDEX `index_lesson_participants_childId` ON `lesson_participants` (`childId`)")
+        db.execSQL("INSERT INTO `lesson_participants` (`lessonId`, `childId`, `childName`, `ordinal`) SELECT `lessonId`, `childId`, NULL, `ordinal` FROM `lesson_participants_old`")
+        db.execSQL("DROP TABLE `lesson_participants_old`")
+    }
+}

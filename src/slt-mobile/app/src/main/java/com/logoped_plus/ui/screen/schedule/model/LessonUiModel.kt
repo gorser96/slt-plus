@@ -8,6 +8,6 @@ data class LessonUiModel(
     val durationMinutes: Int,
     val childNames: String,
     val comment: String,
-    val childIds: List<String> = emptyList(),
+    val participantCount: Int = 0,
     val videoUris: List<String> = emptyList()
 )

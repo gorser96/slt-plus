@@ -22,7 +22,10 @@ data class ChildEditor(
 
 data class ChildrenUiState(
     val loadState: ChildLoadState = ChildLoadState.Loading(),
-    val editor: ChildEditor? = null
+    val editor: ChildEditor? = null,
+    val deleteTarget: Child? = null,
+    val deleting: Boolean = false,
+    val deleteError: ChildWriteResult.Reason? = null
 ) {
     val children: List<Child> get() = loadState.children
 }
@@ -33,7 +36,17 @@ class ChildrenViewModel(private val childRepository: ChildRepository) : ViewMode
 
     init {
         viewModelScope.launch {
-            childRepository.state.collect { load -> mutableState.update { it.copy(loadState = load) } }
+            childRepository.state.collect { load ->
+                mutableState.update { state ->
+                    // A child gone from a successful read closes an open deletion confirm and its form.
+                    val closed = state.deleteTarget != null && load is ChildLoadState.Ready &&
+                        load.children.none { it.id == state.deleteTarget?.id }
+                    state.copy(loadState = load,
+                        deleteTarget = if (closed) null else state.deleteTarget,
+                        deleteError = if (closed) null else state.deleteError,
+                        editor = if (closed && state.editor?.id == state.deleteTarget?.id) null else state.editor)
+                }
+            }
         }
     }
 
@@ -74,6 +87,31 @@ class ChildrenViewModel(private val childRepository: ChildRepository) : ViewMode
                 when (result) {
                     ChildWriteResult.Success -> state.copy(editor = null)
                     is ChildWriteResult.Failure -> state.copy(editor = editor.copy(error = result.reason))
+                }
+            }
+        }
+    }
+
+    fun openDeleteConfirm(child: Child) {
+        if (childRepository.state.value !is ChildLoadState.Ready || uiState.value.deleting) return
+        mutableState.update { it.copy(deleteTarget = child, deleteError = null) }
+    }
+
+    fun cancelDelete() {
+        if (uiState.value.deleting) return
+        mutableState.update { it.copy(deleteTarget = null, deleteError = null) }
+    }
+
+    fun delete() {
+        val child = uiState.value.deleteTarget ?: return
+        if (uiState.value.deleting || childRepository.state.value !is ChildLoadState.Ready) return
+        mutableState.update { it.copy(deleting = true, deleteError = null) }
+        viewModelScope.launch {
+            val result = childRepository.deleteChild(child)
+            mutableState.update { state ->
+                when (result) {
+                    ChildWriteResult.Success -> state.copy(deleting = false)
+                    is ChildWriteResult.Failure -> state.copy(deleting = false, deleteError = result.reason)
                 }
             }
         }

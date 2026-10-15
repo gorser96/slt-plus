@@ -50,7 +50,7 @@ fun LessonItem(
             )
 
             Text(
-                text = if (uiModel.childIds.size > 1) "Групповое занятие" else "Индивидуальное занятие",
+                text = if (uiModel.participantCount > 1) "Групповое занятие" else "Индивидуальное занятие",
                 style = MaterialTheme.typography.bodyMedium
             )
         }
@@ -123,9 +123,9 @@ fun DayLessonCard(
             overflow = TextOverflow.Ellipsis
         )
 
-        Text(
-            text = if (uiModel.childIds.size > 1) "Групповое занятие" else "Индивидуальное занятие",
-            style = MaterialTheme.typography.labelSmall,
+            Text(
+                text = if (uiModel.participantCount > 1) "Групповое занятие" else "Индивидуальное занятие",
+                style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             maxLines = 1,

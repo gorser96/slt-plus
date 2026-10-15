@@ -3,6 +3,7 @@ package com.logoped_plus.data.local
 import androidx.room.Embedded
 import androidx.room.Relation
 import com.logoped_plus.domain.model.Lesson
+import com.logoped_plus.domain.model.LessonParticipant
 import com.logoped_plus.domain.model.VideoAttachment
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -19,7 +20,7 @@ fun LessonWithRelations.toDomain() = Lesson(
     scheduledAt = LocalDateTime.of(LocalDate.ofEpochDay(lesson.scheduledEpochDay), LocalTime.ofNanoOfDay(lesson.scheduledNanoOfDay)),
     durationMinutes = lesson.durationMinutes,
     comment = lesson.comment,
-    childIds = participants.sortedBy { it.ordinal }.map { it.childId },
+    participants = participants.sortedBy { it.ordinal }.map { LessonParticipant(it.childId, it.childName) },
     videoAttachments = videos.sortedBy { it.ordinal }.map { VideoAttachment(it.uri) }
 )
 

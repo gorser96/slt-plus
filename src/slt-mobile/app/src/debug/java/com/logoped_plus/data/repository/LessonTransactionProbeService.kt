@@ -7,6 +7,7 @@ import android.os.Process
 import androidx.room.withTransaction
 import com.logoped_plus.data.local.ChildrenDatabase
 import com.logoped_plus.domain.model.Lesson
+import com.logoped_plus.domain.model.LessonParticipant
 import com.logoped_plus.domain.model.VideoAttachment
 import com.logoped_plus.domain.repository.LessonWriteResult
 import kotlinx.coroutines.*
@@ -42,13 +43,13 @@ class LessonTransactionProbeService : Service() {
                     report(run, JSONObject().put("status", "INSPECTED").put("snapshot", snapshot(db)))
                 } else {
                     db.childDao().addOnce("a", "Саша"); db.childDao().addOnce("b", "Саша")
-                    val old = Lesson("subject", listOf("a"), LocalDateTime.of(2026, 9, 11, 23, 30, 1, 123456789), 90, "  старое\n ", listOf(VideoAttachment("content://old")))
-                    val control = old.copy(id = "control", childIds = listOf("b"), comment = "Контроль")
+                    val old = Lesson("subject", listOf(LessonParticipant("a")), LocalDateTime.of(2026, 9, 11, 23, 30, 1, 123456789), 90, "  старое\n ", listOf(VideoAttachment("content://old")))
+                    val control = old.copy(id = "control", participants = listOf(LessonParticipant("b")), comment = "Контроль")
                     check(db.lessonDao().addOnce(control) is LessonWriteResult.Success)
                     if (update) check(db.lessonDao().addOnce(old) is LessonWriteResult.Success)
                     val before = snapshot(db)
                     val changed = old.copy(scheduledAt = old.scheduledAt.plusDays(2), durationMinutes = 55,
-                        childIds = listOf("b", "a"), comment = "  новое\n  ",
+                        participants = listOf(LessonParticipant("b"), LessonParticipant("a")), comment = "  новое\n  ",
                         videoAttachments = listOf(VideoAttachment("content://new/z"), VideoAttachment("content://new/a")))
                     if (action == "rollback") {
                         db.openHelper.writableDatabase.execSQL("CREATE TRIGGER fail_video BEFORE INSERT ON lesson_videos WHEN NEW.uri='content://new/z' BEGIN SELECT RAISE(ABORT, 'probe'); END")

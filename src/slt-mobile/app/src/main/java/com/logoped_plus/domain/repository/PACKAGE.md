@@ -4,7 +4,7 @@
 
 | Файл | Назначение |
 |---|---|
-| [ChildRepository.kt](ChildRepository.kt) | StateFlow ChildLoadState, retryLoading, suspend addChild/updateChild |
+| [ChildRepository.kt](ChildRepository.kt) | StateFlow ChildLoadState, retryLoading, suspend addChild/updateChild/deleteChild |
 | [ChildLoadState.kt](ChildLoadState.kt) | Loading/Ready/Error с последним списком детей |
 | [ChildWriteResult.kt](ChildWriteResult.kt) | Success после commit либо типизированный отказ |
 | [LessonRepository.kt](LessonRepository.kt) | StateFlow LessonLoadState, retryLoading, suspend addLesson/updateLesson/deleteLesson; синхронных чтений нет |

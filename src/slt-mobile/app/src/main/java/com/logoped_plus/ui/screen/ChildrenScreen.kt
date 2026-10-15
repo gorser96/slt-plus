@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import com.logoped_plus.domain.model.Child
 import com.logoped_plus.domain.repository.ChildLoadState
 import com.logoped_plus.domain.repository.ChildWriteResult
 import com.logoped_plus.ui.screen.children.ChildrenViewModel
@@ -73,10 +74,65 @@ fun ChildrenScreen(viewModel: ChildrenViewModel) {
                 }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::cancel, enabled = !editor.saving) { Text("Отмена") }
+                Row {
+                    if (!editor.isNew) TextButton(
+                        onClick = { state.children.find { it.id == editor.id }?.let(viewModel::openDeleteConfirm) },
+                        enabled = ready && !editor.saving,
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) { Text("Удалить") }
+                    TextButton(onClick = viewModel::cancel, enabled = !editor.saving) { Text("Отмена") }
+                }
             }
         )
     }
+    state.deleteTarget?.let { child ->
+        DeleteChildDialog(child, state.deleting, state.deleteError, state.loadState,
+            viewModel::delete, viewModel::cancelDelete, viewModel::retryLoading)
+    }
+}
+
+@Composable
+internal fun DeleteChildDialog(
+    child: Child,
+    deleting: Boolean,
+    error: ChildWriteResult.Reason?,
+    loadState: ChildLoadState,
+    onDelete: () -> Unit,
+    onCancel: () -> Unit,
+    onRetryLoading: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        properties = DialogProperties(
+            dismissOnBackPress = !deleting,
+            dismissOnClickOutside = !deleting
+        ),
+        title = { Text("Удалить ребёнка?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("«${child.name}» будет удалён из списка.")
+                Text("Его занятия сохранятся в истории с именем.")
+                if (deleting) Text("Удаление…")
+                error?.let { reason ->
+                    Text(when (reason) {
+                        ChildWriteResult.Reason.NotFound -> "Ребёнок не найден. Обновите данные."
+                        ChildWriteResult.Reason.Conflict -> "Запись уже существует с другими данными."
+                        ChildWriteResult.Reason.InvalidName -> "Укажите имя ребёнка"
+                        ChildWriteResult.Reason.NotReady -> "Дождитесь загрузки детей"
+                        ChildWriteResult.Reason.StorageUnavailable -> "Не удалось удалить ребёнка. Повторите попытку"
+                    }, color = MaterialTheme.colorScheme.error)
+                    if (loadState is ChildLoadState.Error || reason == ChildWriteResult.Reason.NotFound)
+                        TextButton(onClick = onRetryLoading, enabled = !deleting) { Text("Повторить загрузку") }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDelete, enabled = !deleting && loadState is ChildLoadState.Ready) { Text("Удалить") }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel, enabled = !deleting) { Text("Отмена") }
+        }
+    )
 }
 
 @Composable

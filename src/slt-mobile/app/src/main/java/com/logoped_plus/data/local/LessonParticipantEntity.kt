@@ -8,8 +8,7 @@ import androidx.room.Index
     tableName = "lesson_participants", primaryKeys = ["lessonId", "childId"],
     indices = [Index(value = ["lessonId", "ordinal"], unique = true), Index("childId")],
     foreignKeys = [
-        ForeignKey(entity = LessonEntity::class, parentColumns = ["id"], childColumns = ["lessonId"], onDelete = ForeignKey.CASCADE),
-        ForeignKey(entity = ChildEntity::class, parentColumns = ["id"], childColumns = ["childId"], onDelete = ForeignKey.RESTRICT)
+        ForeignKey(entity = LessonEntity::class, parentColumns = ["id"], childColumns = ["lessonId"], onDelete = ForeignKey.CASCADE)
     ]
 )
-data class LessonParticipantEntity(val lessonId: String, val childId: String, val ordinal: Int)
+data class LessonParticipantEntity(val lessonId: String, val childId: String, val childName: String?, val ordinal: Int)

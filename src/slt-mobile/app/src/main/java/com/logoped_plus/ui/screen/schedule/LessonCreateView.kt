@@ -42,7 +42,7 @@ internal fun LessonForm(
             isError = editor.duration.toIntOrNull()?.let { it > 0 } != true,
             supportingText = { if (editor.duration.toIntOrNull()?.let { it > 0 } != true) Text("Укажите длительность больше 0 минут") })
         Text("Дети", style = MaterialTheme.typography.titleMedium)
-        ChildMultiSelectField(children = children, selectedChildIds = editor.childIds.toSet(), enabled = enabled && childrenReady,
+        ChildMultiSelectField(children = children, selectedChildIds = editor.participants.filter { it.removedName == null }.map { it.childId }.toSet(), enabled = enabled && childrenReady,
             onSelectionChange = { onAction(ScheduleAction.ChangeChildren(editor.sessionId, it.toList())) })
         if (!creating) {
             OutlinedTextField(value = editor.comment, onValueChange = { text(LessonTextField.COMMENT, it) }, enabled = enabled,

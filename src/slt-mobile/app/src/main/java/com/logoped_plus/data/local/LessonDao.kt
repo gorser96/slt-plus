@@ -36,7 +36,8 @@ abstract class LessonDao {
     @Transaction
     open suspend fun addOnce(lesson: Lesson): LessonWriteResult {
         invalidReason(lesson)?.let { return LessonWriteResult.Failure(it) }
-        if (knownChildren(lesson.childIds).toSet() != lesson.childIds.toSet())
+        val liveIds = lesson.participants.filter { it.removedName == null }.map { it.childId }
+        if (liveIds.isNotEmpty() && knownChildren(liveIds).toSet() != liveIds.toSet())
             return LessonWriteResult.Failure(LessonWriteResult.Reason.UnknownChild)
         val existing = find(lesson.id)
         if (existing != null) return if (existing.toDomain() == lesson) LessonWriteResult.Success(lesson)
@@ -47,7 +48,7 @@ abstract class LessonDao {
     }
 
     protected suspend fun insertRelations(lesson: Lesson) {
-        insertParticipants(lesson.childIds.mapIndexed { index, id -> LessonParticipantEntity(lesson.id, id, index) })
+        insertParticipants(lesson.participants.mapIndexed { index, p -> LessonParticipantEntity(lesson.id, p.childId, p.removedName, index) })
         insertVideos(lesson.videoAttachments.mapIndexed { index, video -> LessonVideoEntity(lesson.id, video.uri, index) })
     }
 
@@ -55,7 +56,8 @@ abstract class LessonDao {
     open suspend fun updateExisting(lesson: Lesson): LessonWriteResult {
         invalidReason(lesson)?.let { return LessonWriteResult.Failure(it) }
         val existing = find(lesson.id) ?: return LessonWriteResult.Failure(LessonWriteResult.Reason.NotFound)
-        if (knownChildren(lesson.childIds).toSet() != lesson.childIds.toSet())
+        val liveIds = lesson.participants.filter { it.removedName == null }.map { it.childId }
+        if (liveIds.isNotEmpty() && knownChildren(liveIds).toSet() != liveIds.toSet())
             return LessonWriteResult.Failure(LessonWriteResult.Reason.UnknownChild)
         check(updateScalars(lesson.toEntity(existing.lesson.position)) == 1)
         clearParticipants(lesson.id)
@@ -73,8 +75,9 @@ abstract class LessonDao {
 }
 
 internal fun invalidReason(lesson: Lesson): LessonWriteResult.Reason? =
-    if (lesson.id.isBlank() || lesson.durationMinutes <= 0 || lesson.childIds.isEmpty() ||
-        lesson.childIds.any { it.isBlank() } || lesson.childIds.distinct().size != lesson.childIds.size ||
+    if (lesson.id.isBlank() || lesson.durationMinutes <= 0 || lesson.participants.isEmpty() ||
+        lesson.participants.any { it.childId.isBlank() } ||
+        lesson.participants.map { it.childId }.distinct().size != lesson.participants.size ||
         lesson.videoAttachments.any { it.uri.isBlank() } ||
         lesson.videoAttachments.map { it.uri }.distinct().size != lesson.videoAttachments.size)
         LessonWriteResult.Reason.InvalidData else null

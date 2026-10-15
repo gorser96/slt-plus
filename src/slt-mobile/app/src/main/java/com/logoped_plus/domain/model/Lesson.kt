@@ -5,9 +5,14 @@ import java.util.UUID
 
 data class Lesson(
     val id: String = UUID.randomUUID().toString(),
-    val childIds: List<String> = emptyList(),
+    val participants: List<LessonParticipant> = emptyList(),
     val scheduledAt: LocalDateTime,
     val durationMinutes: Int,
     val comment: String = "",
     val videoAttachments: List<VideoAttachment> = emptyList()
+)
+
+data class LessonParticipant(
+    val childId: String,
+    val removedName: String? = null
 )

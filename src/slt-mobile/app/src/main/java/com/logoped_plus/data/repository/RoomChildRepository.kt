@@ -54,6 +54,11 @@ class RoomChildRepository(private val dao: ChildDao, private val scope: Coroutin
         else ChildWriteResult.Failure(ChildWriteResult.Reason.NotFound)
     }
 
+    override suspend fun deleteChild(child: Child) = write(child) {
+        if (dao.deleteOnce(child.id)) ChildWriteResult.Success
+        else ChildWriteResult.Failure(ChildWriteResult.Reason.NotFound)
+    }
+
     private suspend fun write(child: Child, action: suspend (String) -> ChildWriteResult): ChildWriteResult {
         val name = child.name.trim()
         if (name.isBlank()) return ChildWriteResult.Failure(ChildWriteResult.Reason.InvalidName)

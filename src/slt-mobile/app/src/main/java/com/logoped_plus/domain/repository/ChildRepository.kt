@@ -9,4 +9,5 @@ interface ChildRepository {
     fun retryLoading()
     suspend fun addChild(child: Child): ChildWriteResult
     suspend fun updateChild(child: Child): ChildWriteResult
+    suspend fun deleteChild(child: Child): ChildWriteResult
 }

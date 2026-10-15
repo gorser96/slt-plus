@@ -7,21 +7,21 @@
 | [ScheduleViewModel.kt](ScheduleViewModel.kt) | Владелец черновиков; объединение снимков по ID, Saving, sessionId, согласование commit/Flow; удаление по DeleteLesson; автозакрытие деталей/редактирования в `refresh()` при пропавшей записи; автоподкрепление видео по AutoAttachLessonVideos; подписка на настройку «Скрывать выходные»; навигация по месяцам/неделям/дням и `OpenDay` |
 | [ScheduleViewModelFactory.kt](ScheduleViewModelFactory.kt) | Фабрика с двумя repository, настройками и use case выбора видео |
 | [ScheduleAction.kt](ScheduleAction.kt) | Начало/отмена, изменения полей с sessionId, ConfirmLesson, DeleteLesson, AutoAttachLessonVideos, повтор чтения, календарные действия по месяцам/неделям/дням и `OpenDay` |
-| [ScheduleUiState.kt](ScheduleUiState.kt) | Два состояния загрузки, editor/detailsDraft, awaitingSnapshot, календарь, UI-модели, canSave/canDelete, videoScanInProgress/videoScanMessage |
-| [LessonEditorState.kt](LessonEditorState.kt) | CREATE/DETAILS/EDIT, UUID, sessionId, raw поля, исходный агрегат, Idle/Saving/Failure |
+| [ScheduleUiState.kt](ScheduleUiState.kt) | Два состояния загрузки, editor/detailsDraft, awaitingSnapshot, календарь, UI-модели, canSave (актуальные участники должны существовать; исторические проходят)/canDelete, videoScanInProgress/videoScanMessage |
+| [LessonEditorState.kt](LessonEditorState.kt) | CREATE/DETAILS/EDIT, UUID, sessionId, raw поля, `participants` (актуальные + исторические, передаются в сохранение без изменений), исходный агрегат, Idle/Saving/Failure |
 | [ScheduleModels.kt](ScheduleModels.kt) | MONTH/WEEK/DAY, начало недели в понедельник |
 | [MonthScheduleView.kt](MonthScheduleView.kt) | Сетка месяца, выбранный день, стабильная сортировка по времени |
 | [WeekScheduleView.kt](WeekScheduleView.kt) | Недельная сетка-обзор (семь столбцов, при скрытых выходных — пять): блоки с временем начала и именами детей, тап по заголовку дня открывает режим дня |
 | [DayScheduleView.kt](DayScheduleView.kt) | Дневная сетка на всю ширину: карточки с временем, именами и типом, стрелки по дням, двойной тап свободного часа |
 | [WeekTimeline.kt](WeekTimeline.kt) | `buildDayTimeline`: сортировка, кластеризация пересечений, минимальное число столбиков на группу, полночь и свободные часы |
-| [ScheduleComponents.kt](ScheduleComponents.kt) | Карточка месяца, блок недели (время, имена, граница), карточка дня (время, имена, тип, граница) |
-| [LessonCreateView.kt](LessonCreateView.kt) | Управляемая форма создания и общая LessonForm |
+| [ScheduleComponents.kt](ScheduleComponents.kt) | Карточка месяца, блок недели (время, имена, граница), карточка дня (время, имена, тип по participantCount, граница) |
+| [LessonCreateView.kt](LessonCreateView.kt) | Управляемая форма создания и общая LessonForm; выбор участников — только актуальные дети |
 | [LessonEditView.kt](LessonEditView.kt) | Управляемая копия черновика деталей через LessonForm |
-| [LessonDetailsView.kt](LessonDetailsView.kt) | Сведения, управляемые комментарий/URI, сохранение изменений; иконка удаления и диалог подтверждения; автоподкрепление видео |
+| [LessonDetailsView.kt](LessonDetailsView.kt) | Сведения (имена — включая исторических, тип по participantCount), управляемые комментарий/URI, сохранение изменений; иконка удаления и диалог подтверждения; автоподкрепление видео |
 
 Маршрут: [ScheduleScreen](../ScheduleScreen.kt) → ScheduleAction → ScheduleViewModel → [контракт](../../../domain/repository/PACKAGE.md) → [Room repository](../../../data/repository/PACKAGE.md). UI-модель — [model](model/PACKAGE.md), поля и видео — [component](component/PACKAGE.md).
 
-Создание получает выбранную дату/свободный час, 40 минут, новый UUID сессии, пустые материалы. Невалидный raw ввод остаётся. Details→Edit копирует черновик; отмена возвращает исходные детали. Success создания закрывает форму, edit возвращает обновлённые детали, детали меняют сохранённую основу. Loading/Error не уничтожают ввод. Имена обновляются по ID.
+Создание получает выбранную дату/свободный час, 40 минут, новый UUID сессии, пустые материалы. Невалидный raw ввод остаётся. Details→Edit копирует черновик; отмена возвращает исходные детали. Success создания закрывает форму, edit возвращает обновлённые детали, детали меняют сохранённую основу. Loading/Error не уничтожают ввод. Имена обновляются по ID; участник с удалённым ребёнком показан снимком `removedName`, недоступен в выборе и сохраняется занятием без изменений.
 
 Saving блокирует изменения и уход. После commit подтверждённый агрегат накладывается до равного Ready: новые записи ждут, навигация доступна. Ошибка чтения предлагает чтение, не повтор подтверждённой записи. Activity-scoped ViewModel переживает поворот; смерть процесса сохраняет только БД.
 

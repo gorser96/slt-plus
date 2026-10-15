@@ -58,7 +58,7 @@ class RoomLessonRepository(private val dao: LessonDao, private val children: Chi
         if (state.value !is LessonLoadState.Ready || children.state.value !is ChildLoadState.Ready)
             return LessonWriteResult.Failure(LessonWriteResult.Reason.NotReady)
         // Own the submitted collections while the caller continues to receive snapshots.
-        val submitted = lesson.copy(childIds = lesson.childIds.toList(), videoAttachments = lesson.videoAttachments.toList())
+        val submitted = lesson.copy(participants = lesson.participants.toList(), videoAttachments = lesson.videoAttachments.toList())
         return try {
             action(submitted)
         } catch (cancelled: CancellationException) {

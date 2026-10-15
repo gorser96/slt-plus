@@ -1,6 +1,7 @@
 package com.logoped_plus.ui.screen.schedule
 
 import com.logoped_plus.domain.model.Lesson
+import com.logoped_plus.domain.model.LessonParticipant
 import com.logoped_plus.domain.model.VideoAttachment
 import com.logoped_plus.domain.repository.LessonWriteResult
 import java.time.DateTimeException
@@ -26,7 +27,7 @@ data class LessonEditorState(
     val hour: String,
     val minute: String,
     val duration: String = "40",
-    val childIds: List<String> = emptyList(),
+    val participants: List<LessonParticipant> = emptyList(),
     val comment: String = "",
     val videoUris: List<String> = emptyList(),
     val status: LessonEditorStatus = LessonEditorStatus.Idle
@@ -38,7 +39,7 @@ data class LessonEditorState(
         val h = hour.toIntOrNull()?.takeIf { it in 0..23 } ?: return null
         val m = minute.toIntOrNull()?.takeIf { it in 0..59 } ?: return null
         val minutes = duration.toIntOrNull()?.takeIf { it > 0 } ?: return null
-        if (childIds.isEmpty() || childIds.distinct().size != childIds.size) return null
+        if (participants.isEmpty() || participants.map { it.childId }.distinct().size != participants.size) return null
         val dateTime = try {
             // Material-only edits must retain seconds/nanoseconds from the original.
             val date = LocalDate.ofEpochDay(epochDay)
@@ -46,7 +47,7 @@ data class LessonEditorState(
             if (old != null && old.toLocalDate() == date && old.hour == h && old.minute == m) old
             else LocalDateTime.of(date, LocalTime.of(h, m))
         } catch (_: DateTimeException) { return null }
-        return Lesson(lessonId, childIds.toList(), dateTime, minutes, comment, videoUris.map(::VideoAttachment))
+        return Lesson(lessonId, participants.toList(), dateTime, minutes, comment, videoUris.map(::VideoAttachment))
     }
 
     companion object {
@@ -55,7 +56,7 @@ data class LessonEditorState(
             epochDay = lesson.scheduledAt.toLocalDate().toEpochDay(),
             hour = lesson.scheduledAt.hour.toString().padStart(2, '0'),
             minute = lesson.scheduledAt.minute.toString().padStart(2, '0'),
-            duration = lesson.durationMinutes.toString(), childIds = lesson.childIds.toList(),
+            duration = lesson.durationMinutes.toString(), participants = lesson.participants.toList(),
             comment = lesson.comment, videoUris = lesson.videoAttachments.map { it.uri }
         )
     }

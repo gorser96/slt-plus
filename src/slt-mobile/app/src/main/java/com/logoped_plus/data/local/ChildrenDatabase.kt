@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [ChildEntity::class, LessonEntity::class, LessonParticipantEntity::class, LessonVideoEntity::class], version = 2, exportSchema = true)
+@Database(entities = [ChildEntity::class, LessonEntity::class, LessonParticipantEntity::class, LessonVideoEntity::class], version = 3, exportSchema = true)
 abstract class ChildrenDatabase : RoomDatabase() {
     abstract fun childDao(): ChildDao
     abstract fun lessonDao(): LessonDao
@@ -13,6 +13,6 @@ abstract class ChildrenDatabase : RoomDatabase() {
     companion object {
         fun create(context: Context, name: String = "children.db"): ChildrenDatabase =
             Room.databaseBuilder(context.applicationContext, ChildrenDatabase::class.java, name)
-                .addMigrations(MIGRATION_1_2).build()
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
     }
 }
