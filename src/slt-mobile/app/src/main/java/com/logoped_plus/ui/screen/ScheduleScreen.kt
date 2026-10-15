@@ -1,6 +1,7 @@
 package com.logoped_plus.ui.screen
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -100,84 +101,84 @@ private fun ScheduleBody(
         Button(onClick = { onAction(ScheduleAction.StartCreatingLesson()) }) { Text("Добавить занятие") }
         return
     }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .then(
-                if (uiState.viewMode == ScheduleViewMode.MONTH) Modifier.verticalScroll(scrollState)
-                else Modifier
-            )
-            .padding(16.dp)
-    ) {
-        ScheduleViewModeSelector(
-            selectedMode = uiState.viewMode,
-            onModeSelected = { mode ->
-                onAction(
-                    ScheduleAction.ChangeViewMode(mode)
-                )
-            }
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        when (uiState.viewMode) {
-            ScheduleViewMode.MONTH -> {
-                MonthScheduleView(
-                    displayedMonth = uiState.displayedMonth,
-                    selectedDate = uiState.selectedDate,
-                    lessons = uiState.lessons,
-                    onDateSelected = { date ->
-                        onAction(
-                            ScheduleAction.SelectDate(date)
-                        )
-                    },
-                    onPreviousMonth = {
-                        onAction(ScheduleAction.PreviousMonth)
-                    },
-                    onNextMonth = {
-                        onAction(ScheduleAction.NextMonth)
-                    },
-                    onLessonClick = { lesson ->
-                        onAction(
-                            ScheduleAction.SelectLesson(lesson.id)
-                        )
-                    }
-                )
-            }
-
-            ScheduleViewMode.WEEK -> {
-                WeekScheduleView(
-                    onEmptyHourDoubleClick = { dateTime ->
-                        onAction(ScheduleAction.StartCreatingLesson(dateTime))
-                    },
-                    modifier = Modifier.weight(1f),
-                    weekStart = uiState.displayedWeekStart,
-                    lessons = uiState.lessons,
-                    weekendHidden = uiState.weekendHidden,
-                    onPreviousWeek = {
-                        onAction(ScheduleAction.PreviousWeek)
-                    },
-                    onNextWeek = {
-                        onAction(ScheduleAction.NextWeek)
-                    },
-                    onLessonClick = { uiModel ->
-                        onAction(
-                            ScheduleAction.SelectLesson(uiModel.id)
-                        )
-                    }
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = {
-                onAction(ScheduleAction.StartCreatingLesson())
-            },
-            modifier = Modifier.fillMaxWidth()
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val weekHeight = maxHeight.coerceAtLeast(420.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(16.dp)
         ) {
-            Text("Добавить занятие")
+            ScheduleViewModeSelector(
+                selectedMode = uiState.viewMode,
+                onModeSelected = { mode ->
+                    onAction(
+                        ScheduleAction.ChangeViewMode(mode)
+                    )
+                }
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            when (uiState.viewMode) {
+                ScheduleViewMode.MONTH -> {
+                    MonthScheduleView(
+                        displayedMonth = uiState.displayedMonth,
+                        selectedDate = uiState.selectedDate,
+                        lessons = uiState.lessons,
+                        onDateSelected = { date ->
+                            onAction(
+                                ScheduleAction.SelectDate(date)
+                            )
+                        },
+                        onPreviousMonth = {
+                            onAction(ScheduleAction.PreviousMonth)
+                        },
+                        onNextMonth = {
+                            onAction(ScheduleAction.NextMonth)
+                        },
+                        onLessonClick = { lesson ->
+                            onAction(
+                                ScheduleAction.SelectLesson(lesson.id)
+                            )
+                        }
+                    )
+                }
+
+                ScheduleViewMode.WEEK -> {
+                    WeekScheduleView(
+                        onEmptyHourDoubleClick = { dateTime ->
+                            onAction(ScheduleAction.StartCreatingLesson(dateTime))
+                        },
+                        modifier = Modifier.height(weekHeight),
+                        weekStart = uiState.displayedWeekStart,
+                        lessons = uiState.lessons,
+                        weekendHidden = uiState.weekendHidden,
+                        onPreviousWeek = {
+                            onAction(ScheduleAction.PreviousWeek)
+                        },
+                        onNextWeek = {
+                            onAction(ScheduleAction.NextWeek)
+                        },
+                        onLessonClick = { uiModel ->
+                            onAction(
+                                ScheduleAction.SelectLesson(uiModel.id)
+                            )
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    onAction(ScheduleAction.StartCreatingLesson())
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Добавить занятие")
+            }
         }
     }
 }

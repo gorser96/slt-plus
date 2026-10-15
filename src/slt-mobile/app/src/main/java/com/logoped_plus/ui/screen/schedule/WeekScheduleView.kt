@@ -73,7 +73,7 @@ fun WeekScheduleView(
         }
         Spacer(Modifier.height(8.dp))
         BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
-            val hourHeight = maxHeight / 5
+            val hourHeight = (maxHeight / 5).coerceAtLeast(64.dp)
             val density = LocalDensity.current
             val initialScroll = with(density) { (hourHeight * 8).roundToPx() }
             val hoursState = rememberScrollState(initial = initialScroll)
