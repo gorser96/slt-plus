@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -69,7 +70,10 @@ private val endDateFormat = DateTimeFormatter.ofPattern("d MMMM yyyy", java.util
 fun formatEndDate(date: LocalDate): String = endDateFormat.format(date)
 
 fun formatSlot(slot: WeeklyLessonSlot): String =
-    "${dayNames.getValue(slot.dayOfWeek)} · %02d:%02d · ${slot.durationMinutes} мин".format(slot.startTime.hour, slot.startTime.minute)
+    "${dayNames.getValue(slot.dayOfWeek)} · %02d:%02d · ${slot.durationMinutes} мин".format(
+        slot.startTime.hour,
+        slot.startTime.minute
+    )
 
 fun childCardErrorText(reason: ChildWriteResult.Reason): String = when (reason) {
     ChildWriteResult.Reason.InvalidName -> "Укажите имя ребёнка"
@@ -98,18 +102,29 @@ fun ChildCardView(state: ChildrenUiState, viewModel: ChildrenViewModel) {
     androidx.activity.compose.BackHandler(enabled = state.editing && state.draft?.saving != true) { viewModel.cancelEditing() }
     androidx.activity.compose.BackHandler(enabled = state.deleteTarget != null && !state.deleting) { viewModel.cancelDelete() }
     if (card == null) {
-        Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.Center) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(16.dp), verticalArrangement = Arrangement.Center
+        ) {
             Text("Ребёнок не найден.", color = MaterialTheme.colorScheme.error)
             Spacer(Modifier.height(16.dp))
             Button(onClick = viewModel::closeCard, enabled = !state.busy) { Text("К списку") }
         }
         state.deleteTarget?.let { target ->
-            DeleteChildDialog(target, state.deleting, state.deleteError, state.loadState,
-                viewModel::delete, viewModel::cancelDelete, viewModel::retryLoading)
+            DeleteChildDialog(
+                target, state.deleting, state.deleteError, state.loadState,
+                viewModel::delete, viewModel::cancelDelete, viewModel::retryLoading
+            )
         }
         return
     }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = card.name,
@@ -126,8 +141,10 @@ fun ChildCardView(state: ChildrenUiState, viewModel: ChildrenViewModel) {
         }
     }
     state.deleteTarget?.let { target ->
-        DeleteChildDialog(target, state.deleting, state.deleteError, state.loadState,
-            viewModel::delete, viewModel::cancelDelete, viewModel::retryLoading)
+        DeleteChildDialog(
+            target, state.deleting, state.deleteError, state.loadState,
+            viewModel::delete, viewModel::cancelDelete, viewModel::retryLoading
+        )
     }
 }
 
@@ -158,11 +175,17 @@ private fun ChildCardDetails(state: ChildrenUiState, card: Child, viewModel: Chi
     state.generationError?.let { reason ->
         Spacer(Modifier.height(8.dp))
         Text(generationErrorText(reason), color = MaterialTheme.colorScheme.error)
-        TextButton(onClick = viewModel::generateLessons, enabled = !state.busy) { Text("Повторить") }
+        TextButton(
+            onClick = viewModel::generateLessons,
+            enabled = !state.busy
+        ) { Text("Повторить") }
     }
     Spacer(Modifier.height(16.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(onClick = viewModel::startEditing, enabled = !state.busy) { Text("Редактировать") }
+        OutlinedButton(
+            onClick = viewModel::startEditing,
+            enabled = !state.busy
+        ) { Text("Редактировать") }
         TextButton(
             onClick = { viewModel.openDeleteConfirm(card) },
             enabled = !state.busy,
@@ -182,10 +205,15 @@ private fun ChildCardTags(state: ChildrenUiState, onRetryTags: () -> Unit) {
             Text("Не удалось загрузить тэги", color = MaterialTheme.colorScheme.error)
             TextButton(onClick = onRetryTags) { Text("Повторить загрузку") }
         }
+
         is TagLoadState.Ready -> {
-            val tags = state.card?.tagIds.orEmpty().mapNotNull { id -> tagsState.tags.find { it.id == id } }
+            val tags = state.card?.tagIds.orEmpty()
+                .mapNotNull { id -> tagsState.tags.find { it.id == id } }
             if (tags.isEmpty()) Text("Тэги не назначены")
-            else FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            else FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 tags.forEach { tag -> TagChip(tag) }
             }
         }
@@ -212,8 +240,12 @@ private fun ChildCardEditor(state: ChildrenUiState, viewModel: ChildrenViewModel
         is TagLoadState.Loading -> Text("Загрузка тэгов…")
         is TagLoadState.Error -> Column {
             Text("Не удалось загрузить тэги", color = MaterialTheme.colorScheme.error)
-            TextButton(onClick = viewModel::retryTags, enabled = !saving) { Text("Повторить загрузку") }
+            TextButton(
+                onClick = viewModel::retryTags,
+                enabled = !saving
+            ) { Text("Повторить загрузку") }
         }
+
         is TagLoadState.Ready -> {
             if (tagsState.tags.isEmpty()) {
                 Text("Тэгов пока нет. Создайте их в разделе «Тэги».")
@@ -229,7 +261,10 @@ private fun ChildCardEditor(state: ChildrenUiState, viewModel: ChildrenViewModel
                         TagSwatch(tag.color)
                         Spacer(Modifier.width(12.dp))
                         Text(tag.name, Modifier.weight(1f))
-                        if (tag.id in draft.tagIds) Icon(Icons.Default.Check, contentDescription = "Назначен")
+                        if (tag.id in draft.tagIds) Icon(
+                            Icons.Default.Check,
+                            contentDescription = "Назначен"
+                        )
                     }
                 }
             }
@@ -239,7 +274,8 @@ private fun ChildCardEditor(state: ChildrenUiState, viewModel: ChildrenViewModel
     Text("Периодическое расписание", style = MaterialTheme.typography.titleMedium)
     Spacer(Modifier.height(8.dp))
     draft.slots.forEach { slot ->
-        SlotEditorRow(slot, saving,
+        SlotEditorRow(
+            slot, saving,
             onDayChange = { day -> viewModel.updateSlot(slot.id, dayOfWeek = day) },
             onTimeChange = { value -> viewModel.updateSlot(slot.id, startTimeText = value) },
             onDurationChange = { value -> viewModel.updateSlot(slot.id, durationText = value) },
@@ -251,18 +287,25 @@ private fun ChildCardEditor(state: ChildrenUiState, viewModel: ChildrenViewModel
         onClick = { showDatePicker = true },
         enabled = !saving
     ) {
-        Text(draft.endDate?.let { "Дата окончания: ${formatEndDate(it)}" } ?: "Указать дату окончания")
+        Text(draft.endDate?.let { "Дата окончания: ${formatEndDate(it)}" }
+            ?: "Указать дату окончания")
     }
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = draft.endDate?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()
+            initialSelectedDateMillis = draft.endDate?.atStartOfDay(ZoneOffset.UTC)?.toInstant()
+                ?.toEpochMilli()
         )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        viewModel.setEndDate(LocalDate.ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC))
+                        viewModel.setEndDate(
+                            LocalDate.ofInstant(
+                                Instant.ofEpochMilli(millis),
+                                ZoneOffset.UTC
+                            )
+                        )
                     }
                     showDatePicker = false
                 }) { Text("ОК") }
@@ -273,12 +316,17 @@ private fun ChildCardEditor(state: ChildrenUiState, viewModel: ChildrenViewModel
         ) { DatePicker(state = datePickerState) }
     }
     draft.endDate?.let {
-        OutlinedButton(onClick = { viewModel.setEndDate(null) }, enabled = !saving) { Text("Сбросить дату окончания") }
+        OutlinedButton(
+            onClick = { viewModel.setEndDate(null) },
+            enabled = !saving
+        ) { Text("Сбросить дату окончания") }
     }
     if (!saving && !viewModel.draftIsValid(draft)) {
         Spacer(Modifier.height(8.dp))
-        Text("Проверьте имя, время (ЧЧ:ММ) и длительность (минуты) строк; при наличии строк укажите дату окончания.",
-            color = MaterialTheme.colorScheme.error)
+        Text(
+            "Проверьте имя, время (ЧЧ:ММ) и длительность (минуты) строк; при наличии строк укажите дату окончания.",
+            color = MaterialTheme.colorScheme.error
+        )
     }
     draft.error?.let { reason ->
         Spacer(Modifier.height(8.dp))
@@ -287,7 +335,10 @@ private fun ChildCardEditor(state: ChildrenUiState, viewModel: ChildrenViewModel
     if (saving) Text("Сохранение…")
     Spacer(Modifier.height(16.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(onClick = viewModel::saveCard, enabled = !saving && viewModel.draftIsValid(draft)) { Text("Сохранить") }
+        Button(
+            onClick = viewModel::saveCard,
+            enabled = !saving && viewModel.draftIsValid(draft)
+        ) { Text("Сохранить") }
         TextButton(onClick = viewModel::cancelEditing, enabled = !saving) { Text("Отмена") }
     }
 }
@@ -302,11 +353,20 @@ private fun SlotEditorRow(
     onRemove: () -> Unit
 ) {
     var menuOpen by remember(slot.id) { mutableStateOf(false) }
-    Row(verticalAlignment = Alignment.Top) {
-        OutlinedButton(onClick = { menuOpen = true }, enabled = !saving) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        OutlinedButton(
+            onClick = { menuOpen = true }, enabled = !saving,
+            shape = RoundedCornerShape(size = 5.dp),
+            modifier = Modifier
+                .height(60.dp)
+                .padding(top = 6.dp)
+        ) {
             Text(shortDayNames[slot.dayOfWeek] ?: "")
         }
-        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+        DropdownMenu(
+            expanded = menuOpen,
+            onDismissRequest = { menuOpen = false }
+        ) {
             (1..7).forEach { day ->
                 DropdownMenuItem(
                     text = { Text(dayNames.getValue(day)) },
@@ -336,7 +396,11 @@ private fun SlotEditorRow(
         )
         Spacer(Modifier.width(8.dp))
         IconButton(onClick = onRemove, enabled = !saving) {
-            Icon(Icons.Default.Close, contentDescription = "Удалить строку", tint = MaterialTheme.colorScheme.error)
+            Icon(
+                Icons.Default.Close,
+                contentDescription = "Удалить строку",
+                tint = MaterialTheme.colorScheme.error
+            )
         }
     }
 }

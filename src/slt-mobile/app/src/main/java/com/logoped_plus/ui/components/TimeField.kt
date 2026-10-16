@@ -17,6 +17,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import java.time.LocalTime
+import kotlin.String
 
 private val TIME_PATTERN = Regex("\\d{1,2}:\\d{2}")
 
@@ -35,7 +36,8 @@ fun TimeField(
     onValueChange: (String) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    supportingText: String? = null
 ) {
     val invalid = parseTimeText(value) == null
     var focused by remember { mutableStateOf(false) }
@@ -68,7 +70,7 @@ fun TimeField(
         label = { Text(label) },
         singleLine = true,
         isError = invalid,
-        supportingText = { if (invalid) Text("Укажите время в формате ЧЧ:ММ") },
+        supportingText = supportingText?.let { message -> { Text(message) } },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         modifier = modifier
             .pointerInput(Unit) {
@@ -93,6 +95,7 @@ private fun formatTimeInput(raw: String): String {
         } else {
             "${digits[0]}:${digits[1]}${digits[2]}"
         }
+
         else -> "${digits[0]}${digits[1]}:${digits[2]}${digits[3]}"
     }
 }
