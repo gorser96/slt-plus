@@ -32,11 +32,17 @@ fun WeekScheduleView(
     onOpenDay: (LocalDate) -> Unit,
     onEmptyHourDoubleClick: (LocalDateTime) -> Unit,
     modifier: Modifier = Modifier,
-    weekendHidden: Boolean = false
+    weekendHidden: Boolean = false,
+    gridStartHour: Int = 0,
+    gridEndHour: Int = 24
 ) {
     val dayCount = if (weekendHidden) 5 else 7
-    val timelines = remember(weekStart, lessons, dayCount) {
-        List(dayCount) { buildDayTimeline(weekStart.plusDays(it.toLong()), lessons) }
+    val gridRange = effectiveGridRange(gridStartHour, gridEndHour)
+    val rows = gridRange.last - gridRange.first + 1
+    val timelines = remember(weekStart, lessons, dayCount, gridRange) {
+        List(dayCount) {
+            buildDayTimeline(weekStart.plusDays(it.toLong()), lessons, gridRange.first * 60, (gridRange.last + 1) * 60)
+        }
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -71,11 +77,12 @@ fun WeekScheduleView(
         BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
             val hourHeight = (maxHeight / 5).coerceAtLeast(64.dp)
             val density = LocalDensity.current
-            val initialScroll = with(density) { (hourHeight * 8).roundToPx() }
+            val initialHours = if (gridRange.first < 8) 8 - gridRange.first else 0
+            val initialScroll = with(density) { (hourHeight * initialHours).roundToPx() }
             val hoursState = rememberScrollState(initial = initialScroll)
             Row(Modifier.fillMaxSize().verticalScroll(hoursState)) {
                 Column(Modifier.width(44.dp)) {
-                    repeat(24) { hour ->
+                    gridRange.forEach { hour ->
                         Column(Modifier.height(hourHeight), verticalArrangement = Arrangement.SpaceBetween) {
                             Text("%02d:00".format(hour), style = MaterialTheme.typography.labelSmall)
                             Text("%02d:00".format(hour + 1), style = MaterialTheme.typography.labelSmall,
@@ -85,10 +92,10 @@ fun WeekScheduleView(
                 }
                 timelines.forEachIndexed { index, timeline ->
                     val date = weekStart.plusDays(index.toLong())
-                    BoxWithConstraints(Modifier.weight(1f).height(hourHeight * 24).clipToBounds()) {
+                    BoxWithConstraints(Modifier.weight(1f).height(hourHeight * rows).clipToBounds()) {
                         val dayWidth = maxWidth
                         Column {
-                            repeat(24) { hour ->
+                            gridRange.forEach { hour ->
                                 val emptyHourModifier = if (timeline.isHourEmpty(hour)) {
                                     Modifier.pointerInput(date, hour, onEmptyHourDoubleClick) {
                                         detectTapGestures(onDoubleTap = {
@@ -109,7 +116,7 @@ fun WeekScheduleView(
                                 onClick = { onLessonClick(span.lesson) },
                                 modifier = Modifier
                                     .offset(x = laneWidth * (span.lane ?: 0),
-                                        y = hourHeight * (span.startMinute / 60f))
+                                        y = hourHeight * ((span.startMinute - gridRange.first * 60f) / 60f))
                                     .width(laneWidth)
                                     .height(hourHeight * ((span.endMinute - span.startMinute) / 60f))
                                     .padding(horizontal = 1.dp)

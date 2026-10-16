@@ -123,6 +123,30 @@ class WeekTimelineTest {
         assertEquals(2, secondDay.spans[1].laneCount)
     }
 
+    @Test
+    fun gridRangeKeepsOnlySpansFullyInside() {
+        val timeline = buildDayTimeline(date, listOf(
+            lesson("inside", 9, 0, 60),
+            lesson("crossing-start", 7, 30, 60),
+            lesson("crossing-end", 15, 30, 60),
+            lesson("outside", 17, 0, 30)
+        ), startMinute = 480, endMinute = 960)
+
+        assertEquals(listOf("inside"), timeline.spans.map { it.lesson.id })
+    }
+
+    @Test
+    fun gridRangeKeepsSpansTouchingBoundaries() {
+        val timeline = buildDayTimeline(date, listOf(
+            lesson("at-start", 8, 0, 30),
+            lesson("at-end", 15, 30, 30)
+        ), startMinute = 480, endMinute = 960)
+
+        assertEquals(listOf("at-start", "at-end"), timeline.spans.map { it.lesson.id })
+        assertEquals(480f, timeline.spans[0].startMinute, 0.001f)
+        assertEquals(960f, timeline.spans[1].endMinute, 0.001f)
+    }
+
     private fun lesson(
         id: String,
         hour: Int,

@@ -4,7 +4,7 @@
 
 | Файл | Назначение |
 |---|---|
-| [LessonDateTimeFields.kt](LessonDateTimeFields.kt) | Дата, raw часы/минуты, диапазоны 0–23/0–59 и enabled |
+| [LessonDateTimeFields.kt](LessonDateTimeFields.kt) | Дата рядом с общим [TimeField](../../../components/PACKAGE.md) (raw «ЧЧ:ММ») и enabled |
 | [LessonDateField.kt](LessonDateField.kt) | DatePickerDialog; календарная дата через UTC, блокировка открытого диалога |
 | [ChildMultiSelectField.kt](ChildMultiSelectField.kt) | Множественный выбор ID с поиском; enabled и guards открытого sheet |
 | [VideoAttachmentsEditor.kt](VideoAttachmentsEditor.kt) | OpenMultipleDocuments, постоянный grant, уникальные URI в порядке выбора, подтверждение открепления, кнопка автоподкрепления с запросом `READ_MEDIA_VIDEO`, enabled/sessionId, scanInProgress/scanMessage |

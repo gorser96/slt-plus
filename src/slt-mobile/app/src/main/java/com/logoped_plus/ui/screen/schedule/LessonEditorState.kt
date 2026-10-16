@@ -4,14 +4,14 @@ import com.logoped_plus.domain.model.Lesson
 import com.logoped_plus.domain.model.LessonParticipant
 import com.logoped_plus.domain.model.VideoAttachment
 import com.logoped_plus.domain.repository.LessonWriteResult
+import com.logoped_plus.ui.components.parseTimeText
 import java.time.DateTimeException
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.util.UUID
 
 enum class LessonEditorMode { CREATE, DETAILS, EDIT }
-enum class LessonTextField { HOUR, MINUTE, DURATION, COMMENT }
+enum class LessonTextField { TIME, DURATION, COMMENT }
 sealed interface LessonEditorStatus {
     data object Idle : LessonEditorStatus
     data object Saving : LessonEditorStatus
@@ -24,8 +24,7 @@ data class LessonEditorState(
     val mode: LessonEditorMode,
     val original: Lesson? = null,
     val epochDay: Long,
-    val hour: String,
-    val minute: String,
+    val time: String,
     val duration: String = "40",
     val participants: List<LessonParticipant> = emptyList(),
     val comment: String = "",
@@ -36,16 +35,15 @@ data class LessonEditorState(
     val changed: Boolean get() = toLesson() != original
 
     fun toLesson(): Lesson? {
-        val h = hour.toIntOrNull()?.takeIf { it in 0..23 } ?: return null
-        val m = minute.toIntOrNull()?.takeIf { it in 0..59 } ?: return null
+        val timeOfDay = parseTimeText(time) ?: return null
         val minutes = duration.toIntOrNull()?.takeIf { it > 0 } ?: return null
         if (participants.isEmpty() || participants.map { it.childId }.distinct().size != participants.size) return null
         val dateTime = try {
             // Material-only edits must retain seconds/nanoseconds from the original.
             val date = LocalDate.ofEpochDay(epochDay)
             val old = original?.scheduledAt
-            if (old != null && old.toLocalDate() == date && old.hour == h && old.minute == m) old
-            else LocalDateTime.of(date, LocalTime.of(h, m))
+            if (old != null && old.toLocalDate() == date && old.hour == timeOfDay.hour && old.minute == timeOfDay.minute) old
+            else LocalDateTime.of(date, timeOfDay)
         } catch (_: DateTimeException) { return null }
         return Lesson(lessonId, participants.toList(), dateTime, minutes, comment, videoUris.map(::VideoAttachment))
     }
@@ -54,8 +52,7 @@ data class LessonEditorState(
         fun from(lesson: Lesson, mode: LessonEditorMode = LessonEditorMode.DETAILS) = LessonEditorState(
             lessonId = lesson.id, mode = mode, original = lesson,
             epochDay = lesson.scheduledAt.toLocalDate().toEpochDay(),
-            hour = lesson.scheduledAt.hour.toString().padStart(2, '0'),
-            minute = lesson.scheduledAt.minute.toString().padStart(2, '0'),
+            time = "%02d:%02d".format(lesson.scheduledAt.hour, lesson.scheduledAt.minute),
             duration = lesson.durationMinutes.toString(), participants = lesson.participants.toList(),
             comment = lesson.comment, videoUris = lesson.videoAttachments.map { it.uri }
         )

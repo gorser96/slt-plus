@@ -20,7 +20,12 @@ internal data class DayTimeline(
     fun isHourEmpty(hour: Int): Boolean = spans.none { it.occupiesHour(hour) }
 }
 
-internal fun buildDayTimeline(date: LocalDate, lessons: List<LessonUiModel>): DayTimeline {
+internal fun buildDayTimeline(
+    date: LocalDate,
+    lessons: List<LessonUiModel>,
+    startMinute: Int = 0,
+    endMinute: Int = 1440
+): DayTimeline {
     val dayStart = date.atStartOfDay()
     val dayEnd = dayStart.plusDays(1)
     // Stable start-time order, including parts of lessons continued from the previous day.
@@ -38,6 +43,7 @@ internal fun buildDayTimeline(date: LocalDate, lessons: List<LessonUiModel>): Da
                 )
             }
         }
+        .filter { it.startMinute >= startMinute && it.endMinute <= endMinute }
 
     val laidOut = mutableListOf<DayLessonSpan>()
     var cluster = emptyList<DayLessonSpan>()

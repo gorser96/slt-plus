@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.logoped_plus.domain.model.Child
+import com.logoped_plus.ui.components.NumberField
 import com.logoped_plus.ui.screen.schedule.component.*
 import java.time.LocalDate
 
@@ -33,13 +34,22 @@ internal fun LessonForm(
         Text(if (creating) "Новое занятие" else "Редактирование занятия", style = MaterialTheme.typography.titleLarge)
         LessonDateTimeFields(
             date = LocalDate.ofEpochDay(editor.epochDay), onDateChange = { onAction(ScheduleAction.ChangeDate(editor.sessionId, it)) },
-            hour = editor.hour, onHourChange = { text(LessonTextField.HOUR, it) },
-            minute = editor.minute, onMinuteChange = { text(LessonTextField.MINUTE, it) }, enabled = enabled
+            time = editor.time, onTimeChange = { text(LessonTextField.TIME, it) }, enabled = enabled
         )
-        OutlinedTextField(value = editor.duration, onValueChange = { text(LessonTextField.DURATION, it) },
-            enabled = enabled, label = { Text("Длительность, мин") }, singleLine = true,
-            isError = editor.duration.toIntOrNull()?.let { it > 0 } != true,
-            supportingText = { if (editor.duration.toIntOrNull()?.let { it > 0 } != true) Text("Укажите длительность больше 0 минут") })
+        val durationInvalid = editor.duration.toIntOrNull()?.let { it > 0 } != true
+        Row(Modifier.fillMaxWidth()) {
+            NumberField(
+                value = editor.duration,
+                onValueChange = { text(LessonTextField.DURATION, it) },
+                label = "Длительность, мин",
+                modifier = Modifier.weight(1f),
+                enabled = enabled,
+                maxDigits = 4,
+                isError = durationInvalid,
+                supportingText = if (durationInvalid) "Укажите длительность больше 0 минут" else null
+            )
+            Spacer(Modifier.weight(1f))
+        }
         Text("Дети", style = MaterialTheme.typography.titleMedium)
         ChildMultiSelectField(children = children, selectedChildIds = editor.participants.filter { it.removedName == null }.map { it.childId }.toSet(), enabled = enabled && childrenReady,
             onSelectionChange = { onAction(ScheduleAction.ChangeChildren(editor.sessionId, it.toList())) })

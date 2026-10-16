@@ -154,6 +154,8 @@ private fun ScheduleBody(
                         weekStart = uiState.displayedWeekStart,
                         lessons = uiState.lessons,
                         weekendHidden = uiState.weekendHidden,
+                        gridStartHour = uiState.gridStartHour,
+                        gridEndHour = uiState.gridEndHour,
                         onPreviousWeek = {
                             onAction(ScheduleAction.PreviousWeek)
                         },
@@ -179,6 +181,8 @@ private fun ScheduleBody(
                         modifier = Modifier.height(weekHeight),
                         date = uiState.selectedDate,
                         lessons = uiState.lessons,
+                        gridStartHour = uiState.gridStartHour,
+                        gridEndHour = uiState.gridEndHour,
                         onPreviousDay = {
                             onAction(ScheduleAction.PreviousDay)
                         },

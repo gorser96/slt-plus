@@ -1,6 +1,6 @@
 # Карта пакетов «Логопед+»
 
-Android-приложение на Kotlin и Jetpack Compose, один Gradle-модуль `app`. Ниже перечислены все 16 пакетов, объявленных в исходниках. `data`, `domain` и другие промежуточные каталоги без собственных классов не являются отдельными пунктами. Тестовые source sets используют те же имена пакетов и описаны в соответствующих картах.
+Android-приложение на Kotlin и Jetpack Compose, один Gradle-модуль `app`. Ниже перечислены все 17 пакетов, объявленных в исходниках. `data`, `domain` и другие промежуточные каталоги без собственных классов не являются отдельными пунктами. Тестовые source sets используют те же имена пакетов и описаны в соответствующих картах.
 
 ## Выбор пакета по задаче
 
@@ -15,6 +15,7 @@ Android-приложение на Kotlin и Jetpack Compose, один Gradle-м�
 | [com.logoped_plus.domain.repository](app/src/main/java/com/logoped_plus/domain/repository/PACKAGE.md) | Контракты доступа к детям, занятиям, тэгам и видео устройства; результат генерации |
 | [com.logoped_plus.domain.usecase](app/src/main/java/com/logoped_plus/domain/usecase/PACKAGE.md) | Use case выбора видео по интервалу занятия; чистый планировщик периодических занятий |
 | [com.logoped_plus.ui](app/src/main/java/com/logoped_plus/ui/PACKAGE.md) | Боковое меню и список разделов (включая «Тэги») |
+| [com.logoped_plus.ui.components](app/src/main/java/com/logoped_plus/ui/components/PACKAGE.md) | Единые контролы ввода: время «ЧЧ:ММ» (`TimeField`, `parseTimeText`) и числа (`NumberField`) |
 | [com.logoped_plus.ui.screen](app/src/main/java/com/logoped_plus/ui/screen/PACKAGE.md) | Экраны разделов: дети (поиск/карточка), тэги, расписание, настройки |
 | [com.logoped_plus.ui.screen.children](app/src/main/java/com/logoped_plus/ui/screen/children/PACKAGE.md) | Состояние списка и карточки ребёнка, добавление, тэги, шаблон, генерация занятий, удаление |
 | [com.logoped_plus.ui.screen.schedule](app/src/main/java/com/logoped_plus/ui/screen/schedule/PACKAGE.md) | Календарь, неделя, день, действия, состояние, создание/просмотр/редактирование/удаление занятия |

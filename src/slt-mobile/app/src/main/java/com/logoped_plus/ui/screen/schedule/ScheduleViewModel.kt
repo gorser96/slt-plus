@@ -27,7 +27,8 @@ class ScheduleViewModel(
     private val mutableState = MutableStateFlow(ScheduleUiState(
         selectedDate = today, displayedMonth = YearMonth.from(today), displayedWeekStart = today.startOfWeek(),
         childLoadState = childRepository.state.value, lessonLoadState = lessonRepository.state.value,
-        children = childRepository.state.value.children, weekendHidden = settings.hideWeekend.value
+        children = childRepository.state.value.children, weekendHidden = settings.hideWeekend.value,
+        gridStartHour = settings.gridStartHour.value, gridEndHour = settings.gridEndHour.value
     ))
     val uiState = mutableState.asStateFlow()
 
@@ -39,6 +40,12 @@ class ScheduleViewModel(
         }
         viewModelScope.launch {
             settings.hideWeekend.collect { hidden -> mutableState.value = mutableState.value.copy(weekendHidden = hidden) }
+        }
+        viewModelScope.launch {
+            settings.gridStartHour.collect { hour -> mutableState.value = mutableState.value.copy(gridStartHour = hour) }
+        }
+        viewModelScope.launch {
+            settings.gridEndHour.collect { hour -> mutableState.value = mutableState.value.copy(gridEndHour = hour) }
         }
     }
 
@@ -73,7 +80,7 @@ class ScheduleViewModel(
             is ScheduleAction.StartCreatingLesson -> {
                 val date = action.scheduledAt ?: state.selectedDate.atStartOfDay()
                 setEditor(LessonEditorState(mode = LessonEditorMode.CREATE, epochDay = date.toLocalDate().toEpochDay(),
-                    hour = date.hour.toString().padStart(2, '0'), minute = date.minute.toString().padStart(2, '0')))
+                    time = "%02d:%02d".format(date.hour, date.minute)))
             }
             is ScheduleAction.SelectLesson -> {
                 val lesson = confirmed?.takeIf { it.id == action.lessonId }
@@ -90,8 +97,7 @@ class ScheduleViewModel(
             is ScheduleAction.ChangeText -> change(action.sessionId) { editor ->
                 if (editor.mode == LessonEditorMode.DETAILS && action.field != LessonTextField.COMMENT) editor
                 else when (action.field) {
-                    LessonTextField.HOUR -> editor.copy(hour = action.value)
-                    LessonTextField.MINUTE -> editor.copy(minute = action.value)
+                    LessonTextField.TIME -> editor.copy(time = action.value)
                     LessonTextField.DURATION -> editor.copy(duration = action.value)
                     LessonTextField.COMMENT -> if (editor.mode == LessonEditorMode.CREATE) editor else editor.copy(comment = action.value)
                 }

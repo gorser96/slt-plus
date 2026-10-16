@@ -25,6 +25,8 @@ data class ScheduleUiState(
     val lessons: List<LessonUiModel> = emptyList(),
     val children: List<Child> = emptyList(),
     val weekendHidden: Boolean = false,
+    val gridStartHour: Int = 0,
+    val gridEndHour: Int = 24,
     val videoScanInProgress: Boolean = false,
     val videoScanMessage: String? = null
 ) {
