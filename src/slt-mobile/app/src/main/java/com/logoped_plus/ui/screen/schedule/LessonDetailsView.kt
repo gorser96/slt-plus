@@ -42,7 +42,6 @@ fun LessonDetailsView(
     canDelete: Boolean,
     editor: LessonEditorState,
     uiModel: LessonUiModel,
-    onBack: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     comment: String,
@@ -66,12 +65,6 @@ fun LessonDetailsView(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TextButton(
-                enabled = !editor.saving, onClick = onBack
-            ) {
-                Text("← Назад")
-            }
-
             Text(
                 text = "Занятие",
                 style = MaterialTheme.typography.titleLarge,

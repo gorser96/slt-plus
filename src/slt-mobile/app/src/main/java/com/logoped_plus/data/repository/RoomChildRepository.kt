@@ -1,16 +1,20 @@
 package com.logoped_plus.data.repository
 
 import com.logoped_plus.data.local.ChildDao
+import com.logoped_plus.data.local.toDomain
 import com.logoped_plus.domain.model.Child
+import com.logoped_plus.domain.model.ChildScheduleValidation
 import com.logoped_plus.domain.repository.ChildLoadState
 import com.logoped_plus.domain.repository.ChildRepository
 import com.logoped_plus.domain.repository.ChildWriteResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -24,8 +28,8 @@ class RoomChildRepository(private val dao: ChildDao, private val scope: Coroutin
             retries.collectLatest {
                 mutableState.value = ChildLoadState.Loading(mutableState.value.children)
                 try {
-                    dao.observeChildren().collect { rows ->
-                        mutableState.value = ChildLoadState.Ready(rows.map { Child(it.id, it.name) })
+                    dao.observeChildrenWithTags().collect { rows ->
+                        mutableState.value = ChildLoadState.Ready(rows.map { it.toDomain() })
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
@@ -44,6 +48,9 @@ class RoomChildRepository(private val dao: ChildDao, private val scope: Coroutin
         }
     }
 
+    override fun observeCard(id: String): Flow<Child?> =
+        dao.observeCard(id).map { rows -> rows.firstOrNull()?.toDomain() }
+
     override suspend fun addChild(child: Child) = write(child) { name ->
         if (dao.addOnce(child.id, name)) ChildWriteResult.Success
         else ChildWriteResult.Failure(ChildWriteResult.Reason.Conflict)
@@ -52,6 +59,22 @@ class RoomChildRepository(private val dao: ChildDao, private val scope: Coroutin
     override suspend fun updateChild(child: Child) = write(child) { name ->
         if (dao.rename(child.id, name) == 1) ChildWriteResult.Success
         else ChildWriteResult.Failure(ChildWriteResult.Reason.NotFound)
+    }
+
+    override suspend fun saveCard(child: Child): ChildWriteResult {
+        val name = child.name.trim()
+        if (name.isBlank()) return ChildWriteResult.Failure(ChildWriteResult.Reason.InvalidName)
+        if (ChildScheduleValidation.validate(child.schedule) != null)
+            return ChildWriteResult.Failure(ChildWriteResult.Reason.InvalidSchedule)
+        if (state.value !is ChildLoadState.Ready) return ChildWriteResult.Failure(ChildWriteResult.Reason.NotReady)
+        val card = child.copy(name = name, tagIds = child.tagIds.filter { it.isNotBlank() }.distinct())
+        return try {
+            dao.saveCardOnce(card)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            ChildWriteResult.Failure(ChildWriteResult.Reason.StorageUnavailable)
+        }
     }
 
     override suspend fun deleteChild(child: Child) = write(child) {

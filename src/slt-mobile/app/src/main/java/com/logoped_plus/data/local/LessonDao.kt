@@ -1,13 +1,33 @@
 package com.logoped_plus.data.local
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Insert
-import androidx.room.Update
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Update
+import com.logoped_plus.domain.model.ChildSchedule
+import com.logoped_plus.domain.model.GenerationCounts
 import com.logoped_plus.domain.model.Lesson
+import com.logoped_plus.domain.model.LessonSpan
+import com.logoped_plus.domain.model.WeeklyLessonSlot
+import com.logoped_plus.domain.repository.GenerateChildLessonsResult
 import com.logoped_plus.domain.repository.LessonWriteResult
+import com.logoped_plus.domain.usecase.RecurringLessonPlanner
+import com.logoped_plus.domain.usecase.RecurringPlanResult
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.util.UUID
+
+data class LessonSpanRow(
+    @ColumnInfo(name = "scheduledEpochDay") val epochDay: Long,
+    @ColumnInfo(name = "scheduledNanoOfDay") val nanoOfDay: Long,
+    val durationMinutes: Int
+) {
+    fun toDomain() = LessonSpan(epochDay, nanoOfDay, durationMinutes)
+}
 
 @Dao
 abstract class LessonDao {
@@ -15,7 +35,6 @@ abstract class LessonDao {
     @Query("SELECT * FROM lessons ORDER BY position ASC")
     abstract fun observeLessons(): Flow<List<LessonWithRelations>>
 
-    @Transaction
     @Query("SELECT * FROM lessons WHERE id = :id")
     abstract suspend fun find(id: String): LessonWithRelations?
 
@@ -33,6 +52,15 @@ abstract class LessonDao {
     @Query("DELETE FROM lessons WHERE id = :id")
     abstract suspend fun deleteLesson(id: String)
 
+    @Query("SELECT endEpochDay FROM child_schedule WHERE childId = :id")
+    abstract suspend fun findScheduleEndEpochDay(id: String): Long?
+
+    @Query("SELECT * FROM child_schedule_slots WHERE childId = :id ORDER BY ordinal ASC")
+    abstract suspend fun findScheduleSlots(id: String): List<ChildScheduleSlotEntity>
+
+    @Query("SELECT l.scheduledEpochDay, l.scheduledNanoOfDay, l.durationMinutes FROM lessons l JOIN lesson_participants p ON p.lessonId = l.id WHERE p.childId = :id")
+    abstract suspend fun findChildLessonSpans(id: String): List<LessonSpanRow>
+
     @Transaction
     open suspend fun addOnce(lesson: Lesson): LessonWriteResult {
         invalidReason(lesson)?.let { return LessonWriteResult.Failure(it) }
@@ -45,6 +73,35 @@ abstract class LessonDao {
         insertLesson(lesson.toEntity())
         insertRelations(lesson)
         return LessonWriteResult.Success(lesson)
+    }
+
+    @Transaction
+    open suspend fun generateForChild(childId: String, now: LocalDateTime): GenerateChildLessonsResult {
+        if (knownChildren(listOf(childId)).isEmpty()) return GenerateChildLessonsResult.Failure(GenerateChildLessonsResult.Reason.NotFound)
+        val endEpochDay = findScheduleEndEpochDay(childId) ?: return GenerateChildLessonsResult.Success(GenerationCounts())
+        val schedule = ChildSchedule(
+            slots = findScheduleSlots(childId).map {
+                WeeklyLessonSlot(it.id, it.dayOfWeek, LocalTime.ofNanoOfDay(it.startNanoOfDay), it.durationMinutes)
+            },
+            endDate = LocalDate.ofEpochDay(endEpochDay)
+        )
+        when (val plan = RecurringLessonPlanner.plan(
+            schedule = schedule,
+            childId = childId,
+            now = now,
+            childLessonSpans = findChildLessonSpans(childId).map { it.toDomain() }
+        )) {
+            is RecurringPlanResult.Invalid -> return GenerateChildLessonsResult.Failure(GenerateChildLessonsResult.Reason.InvalidSchedule)
+            is RecurringPlanResult.Valid -> {
+                plan.lessons.forEach { planned ->
+                    val id = UUID.randomUUID().toString()
+                    insertLesson(LessonEntity(id = id, scheduledEpochDay = planned.startEpochDay,
+                        scheduledNanoOfDay = planned.startNanoOfDay, durationMinutes = planned.durationMinutes, comment = ""))
+                    insertParticipants(listOf(LessonParticipantEntity(id, childId, null, 0)))
+                }
+                return GenerateChildLessonsResult.Success(plan.counts)
+            }
+        }
     }
 
     protected suspend fun insertRelations(lesson: Lesson) {

@@ -30,7 +30,6 @@ internal fun LessonForm(
     val enabled = !editor.saving
     fun text(field: LessonTextField, value: String) { if (enabled) onAction(ScheduleAction.ChangeText(editor.sessionId, field, value)) }
     Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        TextButton(enabled = enabled, onClick = { onAction(if (creating) ScheduleAction.CancelCreatingLesson else ScheduleAction.CancelEditingLesson) }) { Text("← Назад") }
         Text(if (creating) "Новое занятие" else "Редактирование занятия", style = MaterialTheme.typography.titleLarge)
         LessonDateTimeFields(
             date = LocalDate.ofEpochDay(editor.epochDay), onDateChange = { onAction(ScheduleAction.ChangeDate(editor.sessionId, it)) },

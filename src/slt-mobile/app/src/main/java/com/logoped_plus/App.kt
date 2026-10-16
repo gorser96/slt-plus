@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerValue
@@ -37,10 +38,15 @@ import com.logoped_plus.ui.screen.ScheduleScreen
 import com.logoped_plus.ui.screen.SettingsScreen
 import com.logoped_plus.ui.screen.SettingsViewModel
 import com.logoped_plus.ui.screen.SettingsViewModelFactory
+import com.logoped_plus.ui.screen.TagsScreen
 import com.logoped_plus.ui.screen.children.ChildrenViewModel
 import com.logoped_plus.ui.screen.children.ChildrenViewModelFactory
+import com.logoped_plus.ui.screen.schedule.LessonEditorMode
+import com.logoped_plus.ui.screen.schedule.ScheduleAction
 import com.logoped_plus.ui.screen.schedule.ScheduleViewModel
 import com.logoped_plus.ui.screen.schedule.ScheduleViewModelFactory
+import com.logoped_plus.ui.screen.tags.TagsViewModel
+import com.logoped_plus.ui.screen.tags.TagsViewModelFactory
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,10 +54,14 @@ import kotlinx.coroutines.launch
 fun App(
     scheduleViewModel: ScheduleViewModel,
     childrenViewModel: ChildrenViewModel,
+    tagsViewModel: TagsViewModel,
     settingsViewModel: SettingsViewModel
 ) {
     val context = LocalContext.current
     val scheduleState by scheduleViewModel.uiState.collectAsState()
+    val childrenState by childrenViewModel.uiState.collectAsState()
+    val tagsState by tagsViewModel.uiState.collectAsState()
+    val appBusy = scheduleState.saving || childrenState.busy || tagsState.busy
     var currentScreen by rememberSaveable { mutableStateOf(AppScreen.Schedule) }
     var showExitConfirmation by rememberSaveable {
         mutableStateOf(false)
@@ -60,34 +70,39 @@ fun App(
     BackHandler(
         enabled = currentScreen != AppScreen.Schedule
     ) {
-        if (!scheduleViewModel.uiState.value.saving) currentScreen = AppScreen.Schedule
+        if (!appBusy) currentScreen = AppScreen.Schedule
     }
     BackHandler(
         enabled = currentScreen == AppScreen.Schedule
     ) {
-        if (!scheduleViewModel.uiState.value.saving) showExitConfirmation = true
+        if (!appBusy) showExitConfirmation = true
     }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val currentCardId = childrenState.cardId
+    val cardOpen = currentScreen == AppScreen.Children && currentCardId != null
+    val lessonEditor = scheduleState.editor
+    val lessonOpen = currentScreen == AppScreen.Schedule && lessonEditor != null
     val screenTitle = when (currentScreen) {
         AppScreen.Schedule -> "Расписание"
         AppScreen.Children -> "Дети"
+        AppScreen.Tags -> "Тэги"
         AppScreen.Settings -> "Настройки"
     }
 
     ModalNavigationDrawer(
-        gesturesEnabled = !scheduleState.saving,
+        gesturesEnabled = !appBusy,
         drawerState = drawerState,
         drawerContent = {
             AppDrawer(
-                enabled = !scheduleState.saving,
+                enabled = !appBusy,
                 currentScreen = currentScreen,
                 onScreenSelected = { screen ->
-                    if (!scheduleViewModel.uiState.value.saving) currentScreen = screen
+                    if (!appBusy) currentScreen = screen
 
                     scope.launch {
-                        if (!scheduleViewModel.uiState.value.saving) drawerState.close()
+                        if (!appBusy) drawerState.close()
                     }
                 }
             )
@@ -98,17 +113,45 @@ fun App(
             topBar = {
                 TopAppBar(
                     navigationIcon = {
-                        IconButton(enabled = !scheduleState.saving,
-                            onClick = {
-                                scope.launch {
-                                    if (!scheduleViewModel.uiState.value.saving) drawerState.open()
+                        when {
+                            cardOpen -> IconButton(enabled = !appBusy,
+                                onClick = {
+                                    if (!appBusy) childrenViewModel.closeCard()
                                 }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "К списку детей"
+                                )
                             }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Menu,
-                                contentDescription = "Открыть меню"
-                            )
+
+                            lessonOpen -> IconButton(enabled = !appBusy,
+                                onClick = {
+                                    if (!appBusy) scheduleViewModel.onAction(when (lessonEditor?.mode) {
+                                        LessonEditorMode.CREATE -> ScheduleAction.CancelCreatingLesson
+                                        LessonEditorMode.EDIT -> ScheduleAction.CancelEditingLesson
+                                        else -> ScheduleAction.CloseLesson
+                                    })
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Назад"
+                                )
+                            }
+
+                            else -> IconButton(enabled = !appBusy,
+                                onClick = {
+                                    scope.launch {
+                                        if (!appBusy) drawerState.open()
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Menu,
+                                    contentDescription = "Открыть меню"
+                                )
+                            }
                         }
                     },
                     title = {
@@ -133,6 +176,10 @@ fun App(
                         viewModel = childrenViewModel
                     )
 
+                    AppScreen.Tags -> TagsScreen(
+                        viewModel = tagsViewModel
+                    )
+
                     AppScreen.Settings -> SettingsScreen(
                         viewModel = settingsViewModel
                     )
@@ -154,9 +201,9 @@ fun App(
             },
             confirmButton = {
                 TextButton(
-                    enabled = !scheduleState.saving,
+                    enabled = !appBusy,
                     onClick = {
-                        if (!scheduleViewModel.uiState.value.saving) {
+                        if (!appBusy) {
                             showExitConfirmation = false
                             (context as? Activity)?.finish()
                         }
@@ -184,6 +231,7 @@ fun App() {
     val container = (context.applicationContext as LogopedPlusApplication).container
     val lessonRepository = container.lessonRepository
     val childRepository = container.childRepository
+    val tagRepository = container.tagRepository
     val settings = container.settings
 
     val scheduleViewModel: ScheduleViewModel = viewModel(
@@ -197,7 +245,15 @@ fun App() {
 
     val childrenViewModel: ChildrenViewModel = viewModel(
         factory = ChildrenViewModelFactory(
-            childRepository = childRepository
+            childRepository = childRepository,
+            tagRepository = tagRepository,
+            generateChildLessons = container.generateChildLessons
+        )
+    )
+
+    val tagsViewModel: TagsViewModel = viewModel(
+        factory = TagsViewModelFactory(
+            tagRepository = tagRepository
         )
     )
 
@@ -207,5 +263,5 @@ fun App() {
         )
     )
 
-    App(scheduleViewModel, childrenViewModel, settingsViewModel)
+    App(scheduleViewModel, childrenViewModel, tagsViewModel, settingsViewModel)
 }

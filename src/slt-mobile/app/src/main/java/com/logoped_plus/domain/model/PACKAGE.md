@@ -4,11 +4,17 @@
 
 | Файл / символ | Данные |
 |---|---|
-| [Child.kt](Child.kt) — `Child` | Строковые `id` и `name` |
+| [Child.kt](Child.kt) — `Child` | Строковые `id`, `name`, назначения `tagIds` и `schedule: ChildSchedule` (по умолчанию пусты — совместимо со старыми потребителями имени/id) |
 | [Lesson.kt](Lesson.kt) — `Lesson`, `LessonParticipant` | UUID по умолчанию, `participants: List<LessonParticipant>` (`childId` + `removedName` — имя удалённого ребёнка, NULL у актуальных), `scheduledAt: LocalDateTime`, длительность в минутах, комментарий, список видео |
 | [VideoAttachment.kt](VideoAttachment.kt) — `VideoAttachment` | URI видео в виде строки; сам файл здесь не хранится |
 | [DeviceVideo.kt](DeviceVideo.kt) — `DeviceVideo` | URI видео на устройстве, имя, время создания в эпохе (мс) |
+| [Tag.kt](Tag.kt) — `Tag`, `TagColorKey` | Справочник тэгов: `id`, `name`, цвет — стабильный ключ палитры из 8 значений с читаемым названием |
+| [ChildSchedule.kt](ChildSchedule.kt) — `ChildSchedule`, `WeeklyLessonSlot` | Недельный шаблон: ordered-список строк (стабильный `id`, день ISO 1–7, `startTime: LocalTime`, длительность в минутах) и общая `endDate` включительно; пустой шаблон допустим |
+| [ChildScheduleValidation.kt](ChildScheduleValidation.kt) — `ChildScheduleValidation`, `ScheduleIssue` | Чистая проверка: день 1–7, положительная длительность, непредставимые длительности/даты, обязательная endDate при строках |
+| [GenerationCounts.kt](GenerationCounts.kt) — `GenerationCounts` | Счётчики генерации: создано / уже существуют |
+| [LessonSpan.kt](LessonSpan.kt) — `LessonSpan` | Интервал существующего занятия: epochDay, nanoOfDay, длительность |
+| [RecurringMath.kt](RecurringMath.kt) — `RecurringMath` | Чистая арифметика абсолютных наносекунд (epochDay + nanoOfDay) с null при переполнении Long |
 
-Используется [контрактами repository](../repository/PACKAGE.md), [хранением](../../data/repository/PACKAGE.md) и ViewModel. Связь занятия с детьми задаётся ID в порядке занятия; имя актуального участника вычисляется в `ScheduleViewModel.toUiModel` по данным детей, имя удалённого — снимок `removedName`, см. [расписание](../../ui/screen/schedule/PACKAGE.md) и [LessonUiModel](../../ui/screen/schedule/model/PACKAGE.md).
+Используется [контрактами repository](../repository/PACKAGE.md), [хранением](../../data/repository/PACKAGE.md) и ViewModel. Связь занятия с детьми задаётся ID в порядке занятия; имя актуального участника вычисляется в `ScheduleViewModel.toUiModel` по данным детей, имя удалённого — снимок `removedName`, см. [расписание](../../ui/screen/schedule/PACKAGE.md) и [LessonUiModel](../../ui/screen/schedule/model/PACKAGE.md). Названия и цвета тэгов живут только в справочнике; карточка хранит ID.
 
-Здесь нет аннотаций Room, сериализации и проверок корректности полей. При изменении структуры проверь контракты, реализации, преобразование UI-модели и формы. Отдельных тестов моделей нет; использование `Lesson.copy` проверяется тестом репозитория, указанным в его карте.
+Здесь нет аннотаций Room, сериализации и проверок корректности полей (чистые функции — исключение: `ChildScheduleValidation` и `RecurringMath`, они не зависят от Android). При изменении структуры проверь контракты, реализации, преобразование UI-модели и формы.

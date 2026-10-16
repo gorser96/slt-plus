@@ -21,6 +21,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            if (project.hasProperty("wslDebug")) {
+                applicationIdSuffix = ".wsl"
+            }
+        }
         release {
             optimization {
                 enable = false
@@ -44,6 +49,7 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
     androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.room.testing)
     implementation(platform(libs.androidx.compose.bom))

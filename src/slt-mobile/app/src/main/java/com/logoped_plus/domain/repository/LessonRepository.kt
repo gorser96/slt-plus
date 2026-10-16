@@ -2,6 +2,7 @@ package com.logoped_plus.domain.repository
 
 import com.logoped_plus.domain.model.Lesson
 import kotlinx.coroutines.flow.StateFlow
+import java.time.LocalDateTime
 
 interface LessonRepository {
 
@@ -10,4 +11,5 @@ interface LessonRepository {
     suspend fun addLesson(lesson: Lesson): LessonWriteResult
     suspend fun updateLesson(lesson: Lesson): LessonWriteResult
     suspend fun deleteLesson(id: String): LessonWriteResult
+    suspend fun generateChildLessons(childId: String, now: LocalDateTime): GenerateChildLessonsResult
 }

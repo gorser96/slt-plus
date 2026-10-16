@@ -83,7 +83,7 @@ private fun ScheduleBody(
                     uiState.videoScanInProgress, uiState.videoScanMessage)
                 LessonEditorMode.DETAILS -> selectedLesson?.let {
                     LessonDetailsView(canSave = uiState.canSave, canDelete = uiState.canDelete, editor = editor, uiModel = it,
-                        onBack = { onAction(ScheduleAction.CloseLesson) }, onEdit = { onAction(ScheduleAction.StartEditingLesson) },
+                        onEdit = { onAction(ScheduleAction.StartEditingLesson) },
                         onDelete = { onAction(ScheduleAction.DeleteLesson(editor.sessionId)) },
                         comment = editor.comment, videoUris = editor.videoUris,
                         onCommentChange = { value -> onAction(ScheduleAction.ChangeText(editor.sessionId, LessonTextField.COMMENT, value)) },

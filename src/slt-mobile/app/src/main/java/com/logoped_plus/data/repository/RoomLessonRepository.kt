@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 
 class RoomLessonRepository(private val dao: LessonDao, private val children: ChildRepository, scope: CoroutineScope) : LessonRepository {
     private val mutableState = MutableStateFlow<LessonLoadState>(LessonLoadState.Loading())
@@ -41,6 +42,17 @@ class RoomLessonRepository(private val dao: LessonDao, private val children: Chi
 
     override suspend fun addLesson(lesson: Lesson) = write(lesson) { dao.addOnce(it) }
     override suspend fun updateLesson(lesson: Lesson) = write(lesson) { dao.updateExisting(it) }
+    override suspend fun generateChildLessons(childId: String, now: LocalDateTime): GenerateChildLessonsResult {
+        if (state.value !is LessonLoadState.Ready || children.state.value !is ChildLoadState.Ready)
+            return GenerateChildLessonsResult.Failure(GenerateChildLessonsResult.Reason.NotReady)
+        return try {
+            dao.generateForChild(childId, now)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            GenerateChildLessonsResult.Failure(GenerateChildLessonsResult.Reason.StorageUnavailable)
+        }
+    }
     override suspend fun deleteLesson(id: String): LessonWriteResult {
         if (state.value !is LessonLoadState.Ready || children.state.value !is ChildLoadState.Ready)
             return LessonWriteResult.Failure(LessonWriteResult.Reason.NotReady)

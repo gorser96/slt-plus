@@ -10,25 +10,67 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.logoped_plus.domain.model.Child
 import com.logoped_plus.domain.repository.ChildLoadState
 import com.logoped_plus.domain.repository.ChildWriteResult
+import com.logoped_plus.domain.repository.TagLoadState
+import com.logoped_plus.ui.screen.children.ChildCardView
+import com.logoped_plus.ui.screen.children.ChildrenUiState
 import com.logoped_plus.ui.screen.children.ChildrenViewModel
+import com.logoped_plus.ui.screen.children.projectChildren
 
 @Composable
 fun ChildrenScreen(viewModel: ChildrenViewModel) {
     val state by viewModel.uiState.collectAsState()
+    if (state.cardId != null) {
+        ChildCardView(state, viewModel)
+        return
+    }
+    ChildrenListView(state, viewModel)
+}
+
+@Composable
+private fun ChildrenListView(state: ChildrenUiState, viewModel: ChildrenViewModel) {
     val ready = state.loadState is ChildLoadState.Ready
+    val effectiveQuery = state.query.trim()
+    val shown = projectChildren(state.children, state.query)
+    val tagsById = (state.tagsLoadState as? TagLoadState.Ready)?.tags?.associateBy { it.id }.orEmpty()
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().padding(16.dp)) {
-            ChildrenLoadStatus(state.loadState, viewModel::retryLoading)
+            OutlinedTextField(
+                value = state.query,
+                onValueChange = viewModel::setQuery,
+                label = { Text("Поиск по имени") },
+                singleLine = true,
+                enabled = !state.busy
+            )
+            Spacer(Modifier.height(8.dp))
+            ChildrenLoadStatus(state.loadState, viewModel::retryLoading, !state.busy)
             if (ready && state.children.isEmpty()) Text("Детей пока нет")
+            if (ready && state.children.isNotEmpty() && effectiveQuery.isNotEmpty() && shown.isEmpty())
+                Text("Ничего не найдено")
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(state.children, key = { it.id }) { child ->
-                    Card(Modifier.fillMaxWidth().clickable(enabled = ready) { viewModel.openEdit(child) }) {
-                        Text(child.name, Modifier.padding(16.dp))
+                items(shown, key = { it.id }) { child ->
+                    Card(Modifier.fillMaxWidth().clickable(enabled = ready && !state.busy) { viewModel.openCard(child.id) }) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                child.name,
+                                modifier = Modifier.weight(1f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            val childTags = child.tagIds.mapNotNull { id -> tagsById[id] }
+                            childTags.forEach { tag ->
+                                Spacer(Modifier.width(8.dp))
+                                SmallTagChip(tag)
+                            }
+                        }
                     }
                 }
             }
@@ -39,56 +81,71 @@ fun ChildrenScreen(viewModel: ChildrenViewModel) {
         ) { Icon(Icons.Default.Add, contentDescription = "Добавить ребёнка") }
     }
     state.editor?.let { editor ->
-        AlertDialog(
-            onDismissRequest = viewModel::cancel,
-            properties = DialogProperties(
-                dismissOnBackPress = !editor.saving,
-                dismissOnClickOutside = !editor.saving
-            ),
-            title = { Text(if (editor.isNew) "Новый ребёнок" else "Редактирование") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = editor.name,
-                        onValueChange = viewModel::changeName,
-                        label = { Text("Имя") },
-                        enabled = !editor.saving,
-                        singleLine = true
-                    )
-                    if (editor.saving) Text("Сохранение…")
-                    ChildrenLoadStatus(state.loadState, viewModel::retryLoading, !editor.saving)
-                    editor.error?.let { reason ->
-                        Text(when (reason) {
-                            ChildWriteResult.Reason.NotFound -> "Ребёнок не найден. Закройте форму и повторите загрузку."
-                            ChildWriteResult.Reason.Conflict -> "Запись уже существует с другими данными."
-                            ChildWriteResult.Reason.InvalidName -> "Укажите имя ребёнка"
-                            ChildWriteResult.Reason.NotReady -> "Дождитесь загрузки детей"
-                            ChildWriteResult.Reason.StorageUnavailable -> "Не удалось сохранить ребёнка. Повторите попытку"
-                        }, color = MaterialTheme.colorScheme.error)
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = viewModel::save, enabled = ready && !editor.saving && editor.name.isNotBlank()) {
-                    Text(if (editor.isNew) "Добавить" else "Сохранить")
-                }
-            },
-            dismissButton = {
-                Row {
-                    if (!editor.isNew) TextButton(
-                        onClick = { state.children.find { it.id == editor.id }?.let(viewModel::openDeleteConfirm) },
-                        enabled = ready && !editor.saving,
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                    ) { Text("Удалить") }
-                    TextButton(onClick = viewModel::cancel, enabled = !editor.saving) { Text("Отмена") }
-                }
-            }
+        AddChildDialog(
+            isNew = editor.isNew,
+            name = editor.name,
+            saving = editor.saving,
+            error = editor.error,
+            loadState = state.loadState,
+            onChangeName = viewModel::changeName,
+            onSave = viewModel::save,
+            onCancel = viewModel::cancel,
+            onRetryLoading = viewModel::retryLoading
         )
     }
-    state.deleteTarget?.let { child ->
-        DeleteChildDialog(child, state.deleting, state.deleteError, state.loadState,
-            viewModel::delete, viewModel::cancelDelete, viewModel::retryLoading)
-    }
+}
+
+@Composable
+internal fun AddChildDialog(
+    isNew: Boolean,
+    name: String,
+    saving: Boolean,
+    error: ChildWriteResult.Reason?,
+    loadState: ChildLoadState,
+    onChangeName: (String) -> Unit,
+    onSave: () -> Unit,
+    onCancel: () -> Unit,
+    onRetryLoading: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        properties = DialogProperties(
+            dismissOnBackPress = !saving,
+            dismissOnClickOutside = !saving
+        ),
+        title = { Text(if (isNew) "Новый ребёнок" else "Редактирование") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = onChangeName,
+                    label = { Text("Имя") },
+                    enabled = !saving,
+                    singleLine = true
+                )
+                if (saving) Text("Сохранение…")
+                ChildrenLoadStatus(loadState, onRetryLoading, !saving)
+                error?.let { reason ->
+                    Text(when (reason) {
+                        ChildWriteResult.Reason.InvalidName -> "Укажите имя ребёнка"
+                        ChildWriteResult.Reason.InvalidSchedule -> "Проверьте шаблон: время, длительность и дату окончания"
+                        ChildWriteResult.Reason.NotFound -> "Ребёнок не найден. Закройте форму и повторите загрузку."
+                        ChildWriteResult.Reason.Conflict -> "Запись уже существует с другими данными."
+                        ChildWriteResult.Reason.NotReady -> "Дождитесь загрузки детей"
+                        ChildWriteResult.Reason.StorageUnavailable -> "Не удалось сохранить ребёнка. Повторите попытку"
+                    }, color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onSave, enabled = loadState is ChildLoadState.Ready && !saving && name.isNotBlank()) {
+                Text(if (isNew) "Добавить" else "Сохранить")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel, enabled = !saving) { Text("Отмена") }
+        }
+    )
 }
 
 @Composable
@@ -118,6 +175,7 @@ internal fun DeleteChildDialog(
                         ChildWriteResult.Reason.NotFound -> "Ребёнок не найден. Обновите данные."
                         ChildWriteResult.Reason.Conflict -> "Запись уже существует с другими данными."
                         ChildWriteResult.Reason.InvalidName -> "Укажите имя ребёнка"
+                        ChildWriteResult.Reason.InvalidSchedule -> "Проверьте шаблон: время, длительность и дату окончания"
                         ChildWriteResult.Reason.NotReady -> "Дождитесь загрузки детей"
                         ChildWriteResult.Reason.StorageUnavailable -> "Не удалось удалить ребёнка. Повторите попытку"
                     }, color = MaterialTheme.colorScheme.error)

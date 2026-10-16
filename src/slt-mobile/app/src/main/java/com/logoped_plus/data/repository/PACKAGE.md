@@ -1,11 +1,12 @@
 # com.logoped_plus.data.repository
 
-Постоянное локальное хранение детей и полного агрегата занятия. [Общий указатель](../../../../../../../../PACKAGES.md).
+Постоянное локальное хранение детей, занятий и тэгов. [Общий указатель](../../../../../../../../PACKAGES.md).
 
 | Файл | Назначение |
 |---|---|
-| [RoomChildRepository.kt](RoomChildRepository.kt) | StateFlow Loading/Ready/Error, повтор чтения и suspend-запись детей; deleteChild по шаблону write() (NotFound при отсутствии) |
-| [RoomLessonRepository.kt](RoomLessonRepository.kt) | Одна заменяемая подписка DAO; готовность обоих справочников; типизированный результат после commit; deleteLesson по правилам write() |
+| [RoomChildRepository.kt](RoomChildRepository.kt) | StateFlow Loading/Ready/Error со списком детей (имя + tagIds из child_tags), повтор чтения и suspend-запись детей; observeCard — Flow целой карточки (null при удалении); saveCard — валидация имени и [шаблона](../../domain/model/PACKAGE.md), NotReady до Ready, атомарная запись через DAO; deleteChild по шаблону write() (NotFound при отсутствии) |
+| [RoomLessonRepository.kt](RoomLessonRepository.kt) | Одна заменяемая подписка DAO; готовность обоих справочников; типизированный результат после commit; deleteLesson по правилам write(); generateChildLessons — NotReady до готовности справочников, транзакция DAO, исключение → StorageUnavailable |
+| [RoomTagRepository.kt](RoomTagRepository.kt) | StateFlow Loading/Ready/Error с повтором чтения; saveTag/deleteTag — NotReady до Ready, типизированный результат DAO, CancellationException пробрасывается, исключение → StorageUnavailable |
 
 Реализует [контракты](../../domain/repository/PACKAGE.md), использует [Room](../local/PACKAGE.md). Создаётся в [AppContainer](../../PACKAGE.md). InMemoryLessonRepository удалён. CancellationException пробрасывается; ошибка наблюдения после commit не отменяет успех записи. deleteLesson — NotReady до готовности справочников, CancellationException пробрасывается, исключение → StorageUnavailable. Нет seed, сети и fallback в память.
 
@@ -17,3 +18,4 @@ Debug-сервисы защищены DUMP permission, работают в от�
 - [RoomLessonRepositoryTest.kt](../../../../../../androidTest/java/com/logoped_plus/data/repository/RoomLessonRepositoryTest.kt) — androidTest, сценарии транзакционного удаления.
 - [TransactionProbeService.kt](../../../../../../debug/java/com/logoped_plus/data/repository/TransactionProbeService.kt) — debug.
 - [LessonTransactionProbeService.kt](../../../../../../debug/java/com/logoped_plus/data/repository/LessonTransactionProbeService.kt) — debug.
+- [LocalDatabaseIntegrationTest.kt](../../../../../../test/java/com/logoped_plus/data/local/LocalDatabaseIntegrationTest.kt) — test на Robolectric по DAO того же уровня (карточка, тэги, генерация).

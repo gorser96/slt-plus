@@ -6,8 +6,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.semantics
 
 @Composable
 fun AppDrawer(
@@ -37,6 +37,17 @@ fun AppDrawer(
             selected = currentScreen == AppScreen.Children,
             onClick = {
                 if (enabled) onScreenSelected(AppScreen.Children)
+            }
+        )
+
+        NavigationDrawerItem(
+            modifier = Modifier.alpha(if (enabled) 1f else 0.38f).semantics { if (!enabled) disabled() },
+            label = {
+                Text("Тэги")
+            },
+            selected = currentScreen == AppScreen.Tags,
+            onClick = {
+                if (enabled) onScreenSelected(AppScreen.Tags)
             }
         )
 

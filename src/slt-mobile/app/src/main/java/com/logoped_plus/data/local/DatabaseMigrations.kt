@@ -28,3 +28,15 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         db.execSQL("DROP TABLE `lesson_participants_old`")
     }
 }
+
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS `tags` (`position` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `id` TEXT NOT NULL, `name` TEXT NOT NULL, `nameKey` TEXT NOT NULL, `colorKey` TEXT NOT NULL)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_tags_id` ON `tags` (`id`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_tags_nameKey` ON `tags` (`nameKey`)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS `child_tags` (`childId` TEXT NOT NULL, `tagId` TEXT NOT NULL, PRIMARY KEY(`childId`, `tagId`), FOREIGN KEY(`childId`) REFERENCES `children`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE, FOREIGN KEY(`tagId`) REFERENCES `tags`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS `child_schedule` (`childId` TEXT NOT NULL, `endEpochDay` INTEGER NOT NULL, PRIMARY KEY(`childId`), FOREIGN KEY(`childId`) REFERENCES `children`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS `child_schedule_slots` (`childId` TEXT NOT NULL, `id` TEXT NOT NULL, `dayOfWeek` INTEGER NOT NULL, `startNanoOfDay` INTEGER NOT NULL, `durationMinutes` INTEGER NOT NULL, `ordinal` INTEGER NOT NULL, PRIMARY KEY(`childId`, `id`), FOREIGN KEY(`childId`) REFERENCES `children`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE, FOREIGN KEY(`childId`) REFERENCES `child_schedule`(`childId`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_child_schedule_slots_childId_ordinal` ON `child_schedule_slots` (`childId`, `ordinal`)")
+    }
+}
