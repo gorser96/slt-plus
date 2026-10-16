@@ -6,7 +6,7 @@
 |---|---|
 | [RoomChildRepository.kt](RoomChildRepository.kt) | StateFlow Loading/Ready/Error со списком детей (имя + tagIds из child_tags), повтор чтения и suspend-запись детей; observeCard — Flow целой карточки (null при удалении); saveCard — валидация имени и [шаблона](../../domain/model/PACKAGE.md), NotReady до Ready, атомарная запись через DAO; deleteChild по шаблону write() (NotFound при отсутствии) |
 | [RoomLessonRepository.kt](RoomLessonRepository.kt) | Одна заменяемая подписка DAO; готовность обоих справочников; типизированный результат после commit; deleteLesson по правилам write(); generateChildLessons — NotReady до готовности справочников, транзакция DAO, исключение → StorageUnavailable |
-| [RoomTagRepository.kt](RoomTagRepository.kt) | StateFlow Loading/Ready/Error с повтором чтения; saveTag/deleteTag — NotReady до Ready, типизированный результат DAO, CancellationException пробрасывается, исключение → StorageUnavailable |
+| [RoomTagRepository.kt](RoomTagRepository.kt) | StateFlow Loading/Ready/Error с повтором чтения; saveTag/deleteTag/reorderTags — NotReady до Ready, типизированный результат DAO, CancellationException пробрасывается, исключение → StorageUnavailable |
 
 Реализует [контракты](../../domain/repository/PACKAGE.md), использует [Room](../local/PACKAGE.md). Создаётся в [AppContainer](../../PACKAGE.md). InMemoryLessonRepository удалён. CancellationException пробрасывается; ошибка наблюдения после commit не отменяет успех записи. deleteLesson — NotReady до готовности справочников, CancellationException пробрасывается, исключение → StorageUnavailable. Нет seed, сети и fallback в память.
 

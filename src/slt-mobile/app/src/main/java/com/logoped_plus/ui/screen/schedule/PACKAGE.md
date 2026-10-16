@@ -4,10 +4,10 @@
 
 | Файл | Назначение |
 |---|---|
-| [ScheduleViewModel.kt](ScheduleViewModel.kt) | Владелец черновиков; объединение снимков по ID, Saving, sessionId, согласование commit/Flow; удаление по DeleteLesson; автозакрытие деталей/редактирования в `refresh()` при пропавшей записи; автоподкрепление видео по AutoAttachLessonVideos; подписка на настройки «Скрывать выходные» и диапазон часов сетки; навигация по месяцам/неделям/дням и `OpenDay` |
-| [ScheduleViewModelFactory.kt](ScheduleViewModelFactory.kt) | Фабрика с двумя repository, настройками и use case выбора видео |
+| [ScheduleViewModel.kt](ScheduleViewModel.kt) | Владелец черновиков; объединение снимков по ID, Saving, sessionId, согласование commit/Flow; удаление по DeleteLesson; автозакрытие деталей/редактирования в `refresh()` при пропавшей записи; автоподкрепление видео по AutoAttachLessonVideos; `toUiModel` строит `participants` (имя/снимок + тэги ребёнка в порядке справочника) и refresh подписан на тэги (переименование/цвет/порядок обновляют детали); подписка на настройки «Скрывать выходные», диапазон часов сетки и число тэгов; навигация по месяцам/неделям/дням и `OpenDay` |
+| [ScheduleViewModelFactory.kt](ScheduleViewModelFactory.kt) | Фабрика с тремя repository (занятия, дети, тэги), настройками и use case выбора видео |
 | [ScheduleAction.kt](ScheduleAction.kt) | Начало/отмена, изменения полей с sessionId, ConfirmLesson, DeleteLesson, AutoAttachLessonVideos, повтор чтения, календарные действия по месяцам/неделям/дням и `OpenDay` |
-| [ScheduleUiState.kt](ScheduleUiState.kt) | Два состояния загрузки, editor/detailsDraft, awaitingSnapshot, календарь, UI-модели, `weekendHidden`, `gridStartHour`/`gridEndHour`, canSave (актуальные участники должны существовать; исторические проходят)/canDelete, videoScanInProgress/videoScanMessage |
+| [ScheduleUiState.kt](ScheduleUiState.kt) | Два состояния загрузки, editor/detailsDraft, awaitingSnapshot, календарь, UI-модели, `weekendHidden`, `gridStartHour`/`gridEndHour`, `visibleTagsLimit` (лимит тэгов в строках участников деталей), canSave (актуальные участники должны существовать; исторические проходят)/canDelete, videoScanInProgress/videoScanMessage |
 | [LessonEditorState.kt](LessonEditorState.kt) | CREATE/DETAILS/EDIT, UUID, sessionId, raw поля (время — строка `time` «ЧЧ:ММ» через [parseTimeText](../../components/PACKAGE.md)), `participants` (актуальные + исторические, передаются в сохранение без изменений), исходный агрегат, Idle/Saving/Failure |
 | [ScheduleModels.kt](ScheduleModels.kt) | MONTH/WEEK/DAY, начало недели в понедельник, `effectiveGridRange(start, end): IntRange` (строки включительно; валидно при `start in 0..23 && end in start+1..24`, иначе 0..23) |
 | [MonthScheduleView.kt](MonthScheduleView.kt) | Сетка месяца, выбранный день, стабильная сортировка по времени |
@@ -17,7 +17,7 @@
 | [ScheduleComponents.kt](ScheduleComponents.kt) | Карточка месяца, блок недели (время, имена, граница), карточка дня (время, имена, тип по participantCount, граница) |
 | [LessonCreateView.kt](LessonCreateView.kt) | Управляемая форма создания и общая LessonForm; выбор участников — только актуальные дети |
 | [LessonEditView.kt](LessonEditView.kt) | Управляемая копия черновика деталей через LessonForm |
-| [LessonDetailsView.kt](LessonDetailsView.kt) | Сведения (имена — включая исторических, тип по participantCount), управляемые комментарий/URI, сохранение изменений; иконка удаления и диалог подтверждения; автоподкрепление видео |
+| [LessonDetailsView.kt](LessonDetailsView.kt) | Сведения: участники строками «имя — тэги» (тэги — порядок справочника, не более `visibleTagsLimit` через `LimitedTagChips` с меткой «+N»; у удалённого участника только имя, включая исторических; тип по participantCount), управляемые комментарий/URI, сохранение изменений; иконка удаления и диалог подтверждения; автоподкрепление видео |
 
 Маршрут: [ScheduleScreen](../ScheduleScreen.kt) → ScheduleAction → ScheduleViewModel → [контракт](../../../domain/repository/PACKAGE.md) → [Room repository](../../../data/repository/PACKAGE.md). UI-модель — [model](model/PACKAGE.md), поля и видео — [component](component/PACKAGE.md).
 

@@ -1,5 +1,6 @@
 package com.logoped_plus.ui.screen.children
 
+import com.logoped_plus.data.preferences.SettingsStore
 import com.logoped_plus.domain.model.Child
 import com.logoped_plus.domain.model.ChildSchedule
 import com.logoped_plus.domain.model.GenerationCounts
@@ -32,9 +33,15 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 import java.time.LocalDateTime
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class ChildrenViewModelCardTagsTest {
     private val dispatcher = UnconfinedTestDispatcher()
 
@@ -54,7 +61,10 @@ class ChildrenViewModelCardTagsTest {
         val tags = listOf(Tag("t1", "Группа А", TagColorKey.RED), Tag("t2", "Бис", TagColorKey.BLUE))
         val childRepo = FakeChildRepository(listOf(child), child)
         val tagRepo = FakeTagRepository(tags)
-        val viewModel = ChildrenViewModel(childRepo, tagRepo, GenerateChildLessonsUseCase(FakeLessonRepository()))
+        val viewModel = ChildrenViewModel(
+            childRepo, tagRepo, GenerateChildLessonsUseCase(FakeLessonRepository()),
+            SettingsStore(RuntimeEnvironment.getApplication())
+        )
 
         viewModel.openCard("c1")
 
@@ -83,6 +93,7 @@ class ChildrenViewModelCardTagsTest {
         override fun retryLoading() {}
         override suspend fun saveTag(tag: Tag): TagWriteResult = TagWriteResult.Success
         override suspend fun deleteTag(tag: Tag): TagWriteResult = TagWriteResult.Success
+        override suspend fun reorderTags(orderedIds: List<String>): TagWriteResult = TagWriteResult.Success
     }
 
     private class FakeLessonRepository : LessonRepository {

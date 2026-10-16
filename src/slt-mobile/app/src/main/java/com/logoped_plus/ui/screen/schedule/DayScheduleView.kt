@@ -2,23 +2,21 @@ package com.logoped_plus.ui.screen.schedule
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.draw.clipToBounds
-import java.time.LocalDateTime
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.logoped_plus.ui.screen.schedule.model.LessonUiModel
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -46,30 +44,63 @@ fun DayScheduleView(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("‹", style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.clickable(onClick = onPreviousDay).padding(horizontal = 16.dp))
+            Text(
+                "‹", style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier
+                    .clickable(onClick = onPreviousDay)
+                    .padding(horizontal = 16.dp)
+            )
             Text(formatDayHeader(date), style = MaterialTheme.typography.titleMedium)
-            Text("›", style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.clickable(onClick = onNextDay).padding(horizontal = 16.dp))
+            Text(
+                "›", style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier
+                    .clickable(onClick = onNextDay)
+                    .padding(horizontal = 16.dp)
+            )
         }
         Spacer(Modifier.height(12.dp))
-        BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+        BoxWithConstraints(
+            Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
             val hourHeight = (maxHeight / 5).coerceAtLeast(64.dp)
             val density = LocalDensity.current
-            val initialHours = if (gridRange.first < 8) 8 - gridRange.first else 0
+            val minHourFromLesson =
+                lessons.minByOrNull { it.scheduledAt.hour }?.scheduledAt?.hour ?: 8
+            val initialHours =
+                if (gridRange.first < minHourFromLesson) minHourFromLesson - gridRange.first else 0
             val initialScroll = with(density) { (hourHeight * initialHours).roundToPx() }
             val hoursState = rememberScrollState(initial = initialScroll)
-            Row(Modifier.fillMaxSize().verticalScroll(hoursState)) {
+            Row(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(hoursState)
+            ) {
                 Column(Modifier.width(44.dp)) {
                     gridRange.forEach { hour ->
-                        Column(Modifier.height(hourHeight), verticalArrangement = Arrangement.SpaceBetween) {
-                            Text("%02d:00".format(hour), style = MaterialTheme.typography.labelSmall)
-                            Text("%02d:00".format(hour + 1), style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Column(
+                            Modifier.height(hourHeight),
+                            verticalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                "%02d:00".format(hour),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                            Text(
+                                "%02d:00".format(hour + 1),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
-                BoxWithConstraints(Modifier.weight(1f).height(hourHeight * rows).clipToBounds()) {
+                BoxWithConstraints(
+                    Modifier
+                        .weight(1f)
+                        .height(hourHeight * rows)
+                        .clipToBounds()
+                ) {
                     val dayWidth = maxWidth
                     Column {
                         gridRange.forEach { hour ->
@@ -80,9 +111,13 @@ fun DayScheduleView(
                                     })
                                 }
                             } else Modifier
-                            Box(Modifier.fillMaxWidth().height(hourHeight)
-                                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
-                                .then(emptyHourModifier))
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(hourHeight)
+                                    .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                                    .then(emptyHourModifier)
+                            )
                         }
                     }
                     timeline.spans.forEach { span ->
@@ -92,8 +127,10 @@ fun DayScheduleView(
                             uiModel = span.lesson,
                             onClick = { onLessonClick(span.lesson) },
                             modifier = Modifier
-                                .offset(x = laneWidth * (span.lane ?: 0),
-                                    y = hourHeight * ((span.startMinute - gridRange.first * 60f) / 60f))
+                                .offset(
+                                    x = laneWidth * (span.lane ?: 0),
+                                    y = hourHeight * ((span.startMinute - gridRange.first * 60f) / 60f)
+                                )
                                 .width(laneWidth)
                                 .height(hourHeight * ((span.endMinute - span.startMinute) / 60f))
                                 .padding(horizontal = 1.dp)
@@ -105,6 +142,7 @@ fun DayScheduleView(
         }
     }
 }
+
 private fun formatDayHeader(date: LocalDate): String {
     val locale = Locale("ru")
     val weekday = date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)

@@ -12,13 +12,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -27,6 +29,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -43,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.logoped_plus.domain.model.Child
 import com.logoped_plus.domain.model.GenerationCounts
+import com.logoped_plus.domain.model.Tag
 import com.logoped_plus.domain.model.WeeklyLessonSlot
 import com.logoped_plus.domain.repository.ChildWriteResult
 import com.logoped_plus.domain.repository.GenerateChildLessonsResult
@@ -209,8 +213,8 @@ private fun ChildCardTags(state: ChildrenUiState, onRetryTags: () -> Unit) {
         }
 
         is TagLoadState.Ready -> {
-            val tags = state.card?.tagIds.orEmpty()
-                .mapNotNull { id -> tagsState.tags.find { it.id == id } }
+            val assigned = state.card?.tagIds.orEmpty().toSet()
+            val tags = tagsState.tags.filter { it.id in assigned }
             if (tags.isEmpty()) Text("Тэги не назначены")
             else FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -227,6 +231,7 @@ private fun ChildCardTags(state: ChildrenUiState, onRetryTags: () -> Unit) {
 private fun ChildCardEditor(state: ChildrenUiState, viewModel: ChildrenViewModel) {
     val draft = state.draft ?: return
     val saving = draft.saving
+    var showTagPicker by remember { mutableStateOf(false) }
     OutlinedTextField(
         value = draft.name,
         onValueChange = viewModel::changeDraftName,
@@ -249,28 +254,35 @@ private fun ChildCardEditor(state: ChildrenUiState, viewModel: ChildrenViewModel
         }
 
         is TagLoadState.Ready -> {
+            val selectedTags = tagsState.tags.filter { tag -> tag.id in draft.tagIds }
+            if (selectedTags.isEmpty()) {
+                Text("Тэги не назначены")
+            } else {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    selectedTags.forEach { tag -> TagChip(tag) }
+                }
+            }
             if (tagsState.tags.isEmpty()) {
                 Text("Тэгов пока нет. Создайте их в разделе «Тэги».")
             } else {
-                tagsState.tags.forEach { tag ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable(enabled = !saving) { viewModel.toggleTag(tag.id) }
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TagSwatch(tag.color)
-                        Spacer(Modifier.width(12.dp))
-                        Text(tag.name, Modifier.weight(1f))
-                        if (tag.id in draft.tagIds) Icon(
-                            Icons.Default.Check,
-                            contentDescription = "Назначен"
-                        )
-                    }
-                }
+                OutlinedButton(
+                    onClick = { showTagPicker = true },
+                    enabled = !saving
+                ) { Text("Выбрать тэги") }
             }
         }
+    }
+    if (showTagPicker && state.tagsLoadState is TagLoadState.Ready) {
+        TagPickerSheet(
+            tags = (state.tagsLoadState as TagLoadState.Ready).tags,
+            selectedTagIds = draft.tagIds,
+            enabled = !saving,
+            onToggle = viewModel::toggleTag,
+            onDismiss = { showTagPicker = false }
+        )
     }
     Spacer(Modifier.height(16.dp))
     Text("Периодическое расписание", style = MaterialTheme.typography.titleMedium)
@@ -345,6 +357,51 @@ private fun ChildCardEditor(state: ChildrenUiState, viewModel: ChildrenViewModel
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TagPickerSheet(
+    tags: List<Tag>,
+    selectedTagIds: List<String>,
+    enabled: Boolean,
+    onToggle: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .imePadding()
+                .padding(horizontal = 16.dp)
+        ) {
+            Text("Выбор тэгов", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(16.dp))
+            LazyColumn(Modifier.weight(1f, fill = false)) {
+                items(tags, key = { tag -> tag.id }) { tag ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = enabled) { onToggle(tag.id) }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            enabled = enabled,
+                            checked = tag.id in selectedTagIds,
+                            onCheckedChange = { onToggle(tag.id) }
+                        )
+                        TagSwatch(tag.color)
+                        Spacer(Modifier.width(12.dp))
+                        Text(tag.name, Modifier.weight(1f))
+                    }
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Готово") }
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
 @Composable
 private fun SlotEditorRow(
     slot: SlotDraft,
@@ -399,7 +456,7 @@ private fun SlotEditorRow(
         Spacer(Modifier.width(8.dp))
         IconButton(onClick = onRemove, enabled = !saving) {
             Icon(
-                Icons.Default.Close,
+                Icons.Default.Delete,
                 contentDescription = "Удалить строку",
                 tint = MaterialTheme.colorScheme.error
             )

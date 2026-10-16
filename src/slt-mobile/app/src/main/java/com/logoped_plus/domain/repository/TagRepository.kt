@@ -9,4 +9,5 @@ interface TagRepository {
     fun retryLoading()
     suspend fun saveTag(tag: Tag): TagWriteResult
     suspend fun deleteTag(tag: Tag): TagWriteResult
+    suspend fun reorderTags(orderedIds: List<String>): TagWriteResult
 }

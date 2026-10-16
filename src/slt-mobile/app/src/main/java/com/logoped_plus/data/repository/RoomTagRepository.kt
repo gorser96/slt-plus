@@ -49,6 +49,8 @@ class RoomTagRepository(private val dao: TagDao, private val scope: CoroutineSco
 
     override suspend fun deleteTag(tag: Tag) = write { dao.deleteOnce(tag.id) }
 
+    override suspend fun reorderTags(orderedIds: List<String>) = write { dao.reorderOnce(orderedIds) }
+
     private suspend fun write(action: suspend () -> TagWriteResult): TagWriteResult {
         if (state.value !is TagLoadState.Ready) return TagWriteResult.Failure(TagWriteResult.Reason.NotReady)
         return try {

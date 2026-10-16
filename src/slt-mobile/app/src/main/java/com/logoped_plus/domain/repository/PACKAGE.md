@@ -11,7 +11,7 @@
 | [LessonLoadState.kt](LessonLoadState.kt) | Loading/Ready/Error с целым предыдущим снимком |
 | [LessonWriteResult.kt](LessonWriteResult.kt) | Success(lesson); Failure: NotReady, InvalidData, UnknownChild, NotFound, Conflict, StorageUnavailable |
 | [GenerateChildLessonsResult.kt](GenerateChildLessonsResult.kt) | Success(GenerationCounts) либо Failure: NotReady, NotFound, InvalidSchedule, StorageUnavailable |
-| [TagRepository.kt](TagRepository.kt) | StateFlow TagLoadState, retryLoading, suspend saveTag (стабильный ID черновика, идемпотентный повтор)/deleteTag (отвязка от детей) |
+| [TagRepository.kt](TagRepository.kt) | StateFlow TagLoadState, retryLoading, suspend saveTag (стабильный ID черновика, идемпотентный повтор)/deleteTag (отвязка от детей)/reorderTags (новый порядок по списку id, NotFound при расхождении состава) |
 | [TagLoadState.kt](TagLoadState.kt) | Loading/Ready/Error с последним списком тэгов |
 | [TagWriteResult.kt](TagWriteResult.kt) | Success после commit либо типизированный отказ: InvalidName, DuplicateName, NotFound, StorageUnavailable, NotReady |
 | [VideoLibrary.kt](VideoLibrary.kt) | suspend findVideos(from, to) — видео устройства в интервале эпохи |

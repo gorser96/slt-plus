@@ -21,6 +21,10 @@ class SettingsStore(context: Context) {
         preferences.getInt(KEY_GRID_END_HOUR, DEFAULT_GRID_END_HOUR)
     )
     val gridEndHour: StateFlow<Int> = mutableGridEndHour.asStateFlow()
+    private val mutableVisibleTagsLimit = MutableStateFlow(
+        preferences.getInt(KEY_VISIBLE_TAGS_LIMIT, DEFAULT_VISIBLE_TAGS_LIMIT)
+    )
+    val visibleTagsLimit: StateFlow<Int> = mutableVisibleTagsLimit.asStateFlow()
 
     fun setHideWeekend(value: Boolean) {
         preferences.edit().putBoolean(KEY_HIDE_WEEKEND, value).apply()
@@ -37,6 +41,11 @@ class SettingsStore(context: Context) {
         mutableGridEndHour.value = value
     }
 
+    fun setVisibleTagsLimit(value: Int) {
+        preferences.edit().putInt(KEY_VISIBLE_TAGS_LIMIT, value).apply()
+        mutableVisibleTagsLimit.value = value
+    }
+
     private companion object {
         const val PREFS_FILE = "settings"
         const val KEY_HIDE_WEEKEND = "hide_weekend"
@@ -45,5 +54,7 @@ class SettingsStore(context: Context) {
         const val DEFAULT_GRID_START_HOUR = 0
         const val KEY_GRID_END_HOUR = "grid_end_hour"
         const val DEFAULT_GRID_END_HOUR = 24
+        const val KEY_VISIBLE_TAGS_LIMIT = "visible_tags_limit"
+        const val DEFAULT_VISIBLE_TAGS_LIMIT = 3
     }
 }

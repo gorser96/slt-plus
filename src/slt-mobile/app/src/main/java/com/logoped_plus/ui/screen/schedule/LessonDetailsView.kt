@@ -30,7 +30,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.width
+import com.logoped_plus.ui.screen.LimitedTagChips
 import com.logoped_plus.ui.screen.schedule.model.LessonUiModel
 import com.logoped_plus.ui.screen.schedule.component.VideoAttachmentsEditor
 import java.time.format.DateTimeFormatter
@@ -42,6 +45,7 @@ fun LessonDetailsView(
     canDelete: Boolean,
     editor: LessonEditorState,
     uiModel: LessonUiModel,
+    visibleTagsLimit: Int,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     comment: String,
@@ -99,10 +103,31 @@ fun LessonDetailsView(
 
         HorizontalDivider()
 
-        LessonDetailsRow(
-            title = "Ребёнок",
-            value = uiModel.childNames
-        )
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Ребёнок",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            uiModel.participants.forEach { participant ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = participant.name,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (participant.tags.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        LimitedTagChips(participant.tags, visibleTagsLimit.takeIf { it in 0..10 } ?: 3)
+                    }
+                }
+            }
+            if (uiModel.participants.isEmpty()) Text(uiModel.childNames)
+        }
 
         HorizontalDivider()
 

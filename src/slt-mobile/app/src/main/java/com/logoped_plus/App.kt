@@ -238,6 +238,7 @@ fun App() {
         factory = ScheduleViewModelFactory(
             lessonRepository = lessonRepository,
             childRepository = childRepository,
+            tagRepository = tagRepository,
             settings = settings,
             findLessonVideos = container.findLessonVideos
         )
@@ -247,7 +248,8 @@ fun App() {
         factory = ChildrenViewModelFactory(
             childRepository = childRepository,
             tagRepository = tagRepository,
-            generateChildLessons = container.generateChildLessons
+            generateChildLessons = container.generateChildLessons,
+            settings = settings
         )
     )
 

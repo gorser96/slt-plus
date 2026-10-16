@@ -36,6 +36,7 @@ data class ChildCardDraft(
 data class ChildrenUiState(
     val loadState: ChildLoadState = ChildLoadState.Loading(),
     val tagsLoadState: TagLoadState = TagLoadState.Loading(),
+    val visibleTagsLimit: Int = 3,
     val query: String = "",
     val cardId: String? = null,
     val card: Child? = null,

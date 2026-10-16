@@ -7,6 +7,7 @@ import com.logoped_plus.domain.model.Lesson
 import com.logoped_plus.domain.model.LessonParticipant
 import com.logoped_plus.domain.repository.*
 import com.logoped_plus.domain.usecase.FindLessonVideosUseCase
+import com.logoped_plus.ui.screen.schedule.model.LessonParticipantUi
 import com.logoped_plus.ui.screen.schedule.model.LessonUiModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +20,7 @@ import java.util.UUID
 class ScheduleViewModel(
     private val lessonRepository: LessonRepository,
     private val childRepository: ChildRepository,
+    private val tagRepository: TagRepository,
     private val settings: SettingsStore,
     private val findLessonVideos: FindLessonVideosUseCase
 ) : ViewModel() {
@@ -28,14 +30,15 @@ class ScheduleViewModel(
         selectedDate = today, displayedMonth = YearMonth.from(today), displayedWeekStart = today.startOfWeek(),
         childLoadState = childRepository.state.value, lessonLoadState = lessonRepository.state.value,
         children = childRepository.state.value.children, weekendHidden = settings.hideWeekend.value,
-        gridStartHour = settings.gridStartHour.value, gridEndHour = settings.gridEndHour.value
+        gridStartHour = settings.gridStartHour.value, gridEndHour = settings.gridEndHour.value,
+        visibleTagsLimit = settings.visibleTagsLimit.value
     ))
     val uiState = mutableState.asStateFlow()
 
     init {
         refresh()
         viewModelScope.launch {
-            combine(childRepository.state, lessonRepository.state) { _, _ -> Unit }
+            combine(childRepository.state, lessonRepository.state, tagRepository.state) { _, _, _ -> Unit }
                 .collect { refresh() }
         }
         viewModelScope.launch {
@@ -47,22 +50,29 @@ class ScheduleViewModel(
         viewModelScope.launch {
             settings.gridEndHour.collect { hour -> mutableState.value = mutableState.value.copy(gridEndHour = hour) }
         }
+        viewModelScope.launch {
+            settings.visibleTagsLimit.collect { limit -> mutableState.value = mutableState.value.copy(visibleTagsLimit = limit) }
+        }
     }
 
-    private fun refresh(children: ChildLoadState = childRepository.state.value, loaded: LessonLoadState = lessonRepository.state.value) {
+    private fun refresh(
+        children: ChildLoadState = childRepository.state.value,
+        loaded: LessonLoadState = lessonRepository.state.value,
+        tags: TagLoadState = tagRepository.state.value
+    ) {
         val committed = confirmed
         if (loaded is LessonLoadState.Ready && committed != null && loaded.lessons.any { it == committed }) confirmed = null
         val overlay = confirmed
         val rows = if (overlay == null) loaded.lessons else if (loaded.lessons.any { it.id == overlay.id })
             loaded.lessons.map { if (it.id == overlay.id) overlay else it } else loaded.lessons + overlay
         val state = mutableState.value
-        val models = rows.map { toUiModel(it, children) }
+        val models = rows.map { toUiModel(it, children, tags) }
         // A deleted lesson leaves no row, so an open details/edit on it has nothing to show.
         val closed = state.editor != null && state.editor?.mode != LessonEditorMode.CREATE &&
             rows.none { it.id == state.editor?.lessonId }
         val editor = if (closed) null else state.editor
         // A missing row must not discard a draft. Names can change independently of its raw input.
-        val selected = editor?.takeIf { it.mode != LessonEditorMode.CREATE }?.original?.let { toUiModel(it, children) }
+        val selected = editor?.takeIf { it.mode != LessonEditorMode.CREATE }?.original?.let { toUiModel(it, children, tags) }
         mutableState.value = state.copy(childLoadState = children, lessonLoadState = loaded, children = children.children,
             lessons = models, editor = editor, detailsDraft = if (closed) null else state.detailsDraft,
             selectedLesson = selected, isCreatingLesson = editor?.mode == LessonEditorMode.CREATE,
@@ -202,11 +212,18 @@ class ScheduleViewModel(
         }
     }
 
-    private fun toUiModel(lesson: Lesson, children: ChildLoadState): LessonUiModel {
+    private fun toUiModel(lesson: Lesson, children: ChildLoadState, tags: TagLoadState): LessonUiModel {
         val byId = children.children.associateBy { it.id }
+        val tagsInOrder = (tags as? TagLoadState.Ready)?.tags.orEmpty()
         val names = lesson.participants.map { it.removedName ?: byId[it.childId]?.name }.filterNotNull().joinToString(", ")
+        val participants = lesson.participants.map { p ->
+            val child = byId[p.childId]
+            val assigned = child?.tagIds.orEmpty().toSet()
+            // Directory order is the display order.
+            LessonParticipantUi(p.removedName ?: child?.name ?: "", tagsInOrder.filter { it.id in assigned })
+        }
         return LessonUiModel(lesson.id, lesson.scheduledAt, lesson.durationMinutes,
             names, lesson.comment, lesson.participants.size,
-            lesson.videoAttachments.map { it.uri })
+            lesson.videoAttachments.map { it.uri }, participants)
     }
 }

@@ -2,6 +2,7 @@ package com.logoped_plus.ui.screen.children
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.logoped_plus.data.preferences.SettingsStore
 import com.logoped_plus.domain.model.Child
 import com.logoped_plus.domain.model.ChildScheduleValidation
 import com.logoped_plus.domain.repository.ChildLoadState
@@ -22,13 +23,19 @@ import java.util.UUID
 class ChildrenViewModel(
     private val childRepository: ChildRepository,
     private val tagRepository: TagRepository,
-    private val generateChildLessons: GenerateChildLessonsUseCase
+    private val generateChildLessons: GenerateChildLessonsUseCase,
+    private val settings: SettingsStore
 ) : ViewModel() {
-    private val mutableState = MutableStateFlow(ChildrenUiState(childRepository.state.value, tagRepository.state.value))
+    private val mutableState = MutableStateFlow(
+        ChildrenUiState(childRepository.state.value, tagRepository.state.value, settings.visibleTagsLimit.value)
+    )
     val uiState = mutableState.asStateFlow()
     private var cardJob: Job? = null
 
     init {
+        viewModelScope.launch {
+            settings.visibleTagsLimit.collect { limit -> mutableState.update { it.copy(visibleTagsLimit = limit) } }
+        }
         viewModelScope.launch {
             childRepository.state.collect { load ->
                 mutableState.update { state ->

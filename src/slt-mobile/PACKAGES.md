@@ -9,7 +9,7 @@ Android-приложение на Kotlin и Jetpack Compose, один Gradle-м�
 | [com.logoped_plus](app/src/main/java/com/logoped_plus/PACKAGE.md) | Запуск, создание зависимостей, переключение экранов (4 раздела), системная кнопка «Назад», выход |
 | [com.logoped_plus.data.local](app/src/main/java/com/logoped_plus/data/local/PACKAGE.md) | Room-схема v4 (миграции 1→2, 2→3, 3→4), DAO детей/занятий/тэгов/шаблонов, файловая БД |
 | [com.logoped_plus.data.media](app/src/main/java/com/logoped_plus/data/media/PACKAGE.md) | Видео устройства через MediaStore (реализация `VideoLibrary`) |
-| [com.logoped_plus.data.preferences](app/src/main/java/com/logoped_plus/data/preferences/PACKAGE.md) | Настройки приложения в SharedPreferences: «Скрывать выходные» |
+| [com.logoped_plus.data.preferences](app/src/main/java/com/logoped_plus/data/preferences/PACKAGE.md) | Настройки приложения в SharedPreferences: «Скрывать выходные», часы сетки, число показываемых тэгов |
 | [com.logoped_plus.data.repository](app/src/main/java/com/logoped_plus/data/repository/PACKAGE.md) | Room-хранение детей, занятий, тэгов и шаблонов, атомарная карточка, пакетная генерация |
 | [com.logoped_plus.domain.model](app/src/main/java/com/logoped_plus/domain/model/PACKAGE.md) | Структуры ребёнка (тэги, шаблон), занятия, тэгов, видеовложения; чистая проверка шаблона |
 | [com.logoped_plus.domain.repository](app/src/main/java/com/logoped_plus/domain/repository/PACKAGE.md) | Контракты доступа к детям, занятиям, тэгам и видео устройства; результат генерации |

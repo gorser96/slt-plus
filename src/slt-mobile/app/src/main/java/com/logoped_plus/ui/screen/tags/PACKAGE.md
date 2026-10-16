@@ -4,7 +4,7 @@
 
 | Файл / символ | Ответственность |
 |---|---|
-| [TagsViewModel.kt](TagsViewModel.kt) — `TagsUiState`, `TagDraft`, `TagsViewModel` | Наблюдение TagRepository.state; редактор (стабильный UUID черновика, имя, цвет из палитры), сохранение с идемпотентным повтором, удаление с подтверждением (отвязка от детей); `busy` блокирует повтор и уход |
+| [TagsViewModel.kt](TagsViewModel.kt) — `TagsUiState`, `TagDraft`, `TagsViewModel` | Наблюдение TagRepository.state; редактор (стабильный UUID черновика, имя, цвет из палитры), сохранение с идемпотентным повтором, удаление с подтверждением (отвязка от детей); перетаскивание: `startDrag`/`dragMove(from, to)`/`endDrag` — локальный порядок `dragOrder` во время жеста (без записи), по окончании один `reorderTags`; при ошибке — возврат прежнего порядка, `pendingReorder` с `retryReorder`/`cancelReorder` и `reorderError`; внешний эмит тэгов во время жеста отменяет его; `tags` отдаёт список в `dragOrder`; `busy` блокирует повтор, уход и открытие редактора/удаления |
 | [TagsViewModelFactory.kt](TagsViewModelFactory.kt) | Передача TagRepository; исключение при неизвестном классе |
 | [TagPalette.kt](TagPalette.kt) | Палитра: ключ TagColorKey → Compose-цвет и контрастный цвет подписи (вычисляется в UI) |
 

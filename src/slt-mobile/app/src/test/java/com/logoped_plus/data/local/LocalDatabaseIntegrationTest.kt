@@ -202,6 +202,27 @@ class LocalDatabaseIntegrationTest {
     }
 
     @Test
+    fun tagReorderChangesOrderAndRejectsStaleIds() = runBlocking {
+        val db = open("itest-tag-reorder.db")
+        val tagDao = db.tagDao()
+        assertEquals(TagWriteResult.Success, tagDao.saveOnce(Tag("t1", "Альфа", TagColorKey.RED)))
+        assertEquals(TagWriteResult.Success, tagDao.saveOnce(Tag("t2", "Бета", TagColorKey.BLUE)))
+        assertEquals(TagWriteResult.Success, tagDao.saveOnce(Tag("t3", "Гамма", TagColorKey.GREEN)))
+        assertEquals(listOf("t1", "t2", "t3"), tags(db).map { it.id })
+
+        assertEquals(TagWriteResult.Success, tagDao.reorderOnce(listOf("t3", "t1", "t2")))
+        assertEquals(listOf("t3", "t1", "t2"), tags(db).map { it.id })
+
+        assertEquals(TagWriteResult.Success, tagDao.reorderOnce(listOf("t1", "t2", "t3")))
+        assertEquals(listOf("t1", "t2", "t3"), tags(db).map { it.id })
+
+        assertEquals(TagWriteResult.Failure(TagWriteResult.Reason.NotFound), tagDao.reorderOnce(listOf("t1", "t3")))
+        assertEquals(TagWriteResult.Failure(TagWriteResult.Reason.NotFound), tagDao.reorderOnce(listOf("t1", "t2", "t4")))
+        assertEquals(TagWriteResult.Success, tagDao.reorderOnce(emptyList()))
+        assertEquals(listOf("t1", "t2", "t3"), tags(db).map { it.id })
+    }
+
+    @Test
     fun childrenWithTagsExposeAssignedTags() = runBlocking {
         val db = open("itest-list-tags.db")
         val dao = db.childDao()

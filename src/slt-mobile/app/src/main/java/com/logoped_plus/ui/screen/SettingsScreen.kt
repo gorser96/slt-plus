@@ -5,7 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -23,7 +26,11 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val startInvalid = state.gridStartHour !in 0..23
     val endInvalid = state.gridEndHour !in 1..24 || state.gridEndHour <= state.gridStartHour
     Column(
-        Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text("Расписание", style = MaterialTheme.typography.titleMedium)
@@ -67,6 +74,21 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             maxDigits = 2,
             isError = endInvalid,
             supportingText = if (endInvalid) "Конечный час — от 1 до 24 и больше начального" else null
+        )
+        Text("Дети", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Сколько тэгов показывать в строке ребёнка в списке детей и в карточке занятия; лишние тэги показаны меткой «+N»",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        NumberField(
+            value = state.visibleTagsLimit.toString(),
+            onValueChange = { viewModel.setVisibleTagsLimit(it.toIntOrNull() ?: 0) },
+            label = "Сколько тэгов показывать",
+            modifier = Modifier.fillMaxWidth(),
+            maxDigits = 2,
+            isError = state.visibleTagsLimitInvalid,
+            supportingText = if (state.visibleTagsLimitInvalid) "Количество тэгов — от 0 до 10" else null
         )
     }
 }

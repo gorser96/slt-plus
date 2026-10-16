@@ -4,8 +4,8 @@ import com.logoped_plus.domain.model.Child
 import com.logoped_plus.domain.repository.ChildLoadState
 import com.logoped_plus.domain.repository.LessonLoadState
 import com.logoped_plus.ui.screen.schedule.model.LessonUiModel
-import java.time.LocalDateTime
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.YearMonth
 
 data class ScheduleUiState(
@@ -18,7 +18,7 @@ data class ScheduleUiState(
     val isCreatingLesson: Boolean = false,
     val creationDateTime: LocalDateTime? = null,
     val isEditingLesson: Boolean = false,
-    val viewMode: ScheduleViewMode = ScheduleViewMode.MONTH,
+    val viewMode: ScheduleViewMode = ScheduleViewMode.WEEK,
     val selectedDate: LocalDate,
     val displayedMonth: YearMonth,
     val displayedWeekStart: LocalDate,
@@ -27,17 +27,20 @@ data class ScheduleUiState(
     val weekendHidden: Boolean = false,
     val gridStartHour: Int = 0,
     val gridEndHour: Int = 24,
+    val visibleTagsLimit: Int = 3,
     val videoScanInProgress: Boolean = false,
     val videoScanMessage: String? = null
 ) {
     val saving: Boolean get() = editor?.saving == true
-    val canSave: Boolean get() = !saving && !awaitingSnapshot &&
-        childLoadState is ChildLoadState.Ready && lessonLoadState is LessonLoadState.Ready &&
-        editor?.toLesson()?.let { lesson ->
-            lesson.participants.all { p -> p.removedName != null || children.any { it.id == p.childId } } &&
-                (editor.mode == LessonEditorMode.CREATE || lessonLoadState.lessons.any { it.id == lesson.id })
-        } == true
-    val canDelete: Boolean get() = !saving && !awaitingSnapshot &&
-        childLoadState is ChildLoadState.Ready && lessonLoadState is LessonLoadState.Ready &&
-        editor?.let { e -> e.mode != LessonEditorMode.CREATE && lessonLoadState.lessons.any { it.id == e.lessonId } } == true
+    val canSave: Boolean
+        get() = !saving && !awaitingSnapshot &&
+                childLoadState is ChildLoadState.Ready && lessonLoadState is LessonLoadState.Ready &&
+                editor?.toLesson()?.let { lesson ->
+                    lesson.participants.all { p -> p.removedName != null || children.any { it.id == p.childId } } &&
+                            (editor.mode == LessonEditorMode.CREATE || lessonLoadState.lessons.any { it.id == lesson.id })
+                } == true
+    val canDelete: Boolean
+        get() = !saving && !awaitingSnapshot &&
+                childLoadState is ChildLoadState.Ready && lessonLoadState is LessonLoadState.Ready &&
+                editor?.let { e -> e.mode != LessonEditorMode.CREATE && lessonLoadState.lessons.any { it.id == e.lessonId } } == true
 }

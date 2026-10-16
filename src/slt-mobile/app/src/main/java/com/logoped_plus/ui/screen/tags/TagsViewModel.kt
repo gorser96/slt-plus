@@ -27,10 +27,21 @@ data class TagsUiState(
     val draft: TagDraft? = null,
     val deleteTarget: Tag? = null,
     val deleting: Boolean = false,
-    val deleteError: TagWriteResult.Reason? = null
+    val deleteError: TagWriteResult.Reason? = null,
+    val dragTagId: String? = null,
+    val dragOrder: List<String>? = null,
+    val pendingReorder: List<String>? = null,
+    val reorderError: TagWriteResult.Reason? = null
 ) {
-    val tags: List<Tag> get() = loadState.tags
-    val busy: Boolean get() = deleting || draft?.saving == true
+    val tags: List<Tag>
+        get() {
+            val base = loadState.tags
+            val order = dragOrder ?: return base
+            val byId = base.associateBy { it.id }
+            return order.mapNotNull { byId[it] } + base.filter { it.id !in order.toSet() }
+        }
+    val busy: Boolean get() = deleting || draft?.saving == true || dragTagId != null || reorderError != null
+    val dragActive: Boolean get() = dragTagId != null
 }
 
 class TagsViewModel(private val tagRepository: TagRepository) : ViewModel() {
@@ -43,7 +54,10 @@ class TagsViewModel(private val tagRepository: TagRepository) : ViewModel() {
                 mutableState.update { state ->
                     val closed = state.deleteTarget != null && load is TagLoadState.Ready &&
                         load.tags.none { it.id == state.deleteTarget?.id }
-                    if (closed) state.copy(loadState = load, deleteTarget = null, deleteError = null,
+                    if (state.dragTagId != null && load is TagLoadState.Ready) {
+                        // An external write during the drag invalidates the in-flight order.
+                        state.copy(loadState = load, dragTagId = null, dragOrder = null)
+                    } else if (closed) state.copy(loadState = load, deleteTarget = null, deleteError = null,
                         deleting = false, draft = if (state.draft?.id == state.deleteTarget?.id) null else state.draft)
                     else state.copy(loadState = load)
                 }
@@ -78,6 +92,57 @@ class TagsViewModel(private val tagRepository: TagRepository) : ViewModel() {
     fun cancel() {
         if (uiState.value.draft?.saving == true) return
         mutableState.update { it.copy(draft = null) }
+    }
+
+    fun startDrag(tagId: String) {
+        if (tagRepository.state.value !is TagLoadState.Ready || uiState.value.busy) return
+        mutableState.update { it.copy(dragTagId = tagId, dragOrder = it.tags.map { t -> t.id },
+            reorderError = null, pendingReorder = null) }
+    }
+
+    fun dragMove(draggedId: String, from: Int, to: Int) {
+        mutableState.update { state ->
+            if (state.dragTagId != draggedId || state.dragOrder == null) state
+            else {
+                val ids = state.dragOrder.toMutableList()
+                val moved = ids.removeAt(from.coerceIn(0, ids.lastIndex))
+                ids.add(to.coerceIn(0, ids.lastIndex), moved)
+                state.copy(dragOrder = ids)
+            }
+        }
+    }
+
+    fun endDrag(draggedId: String) {
+        val state = uiState.value
+        if (state.dragTagId != draggedId) return
+        val order = state.dragOrder
+        mutableState.update { it.copy(dragTagId = null) }
+        val saved = (state.loadState as? TagLoadState.Ready)?.tags?.map { it.id }
+        if (order == null || order == saved) {
+            mutableState.update { it.copy(dragOrder = null) }
+            return
+        }
+        viewModelScope.launch { commitReorder(order) }
+    }
+
+    private suspend fun commitReorder(order: List<String>) {
+        when (val result = tagRepository.reorderTags(order)) {
+            TagWriteResult.Success ->
+                mutableState.update { it.copy(dragOrder = null, reorderError = null, pendingReorder = null) }
+            is TagWriteResult.Failure ->
+                mutableState.update { it.copy(dragOrder = null, reorderError = result.reason, pendingReorder = order) }
+        }
+    }
+
+    fun retryReorder() {
+        val order = uiState.value.pendingReorder ?: return
+        if (uiState.value.dragActive) return
+        viewModelScope.launch { commitReorder(order) }
+    }
+
+    fun cancelReorder() {
+        if (uiState.value.dragActive) return
+        mutableState.update { it.copy(reorderError = null, pendingReorder = null) }
     }
 
     fun retryLoading() {
